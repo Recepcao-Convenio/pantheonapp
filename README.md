@@ -10,7 +10,6 @@ O GitHub Pages é público, então os números **não** ficam abertos no reposit
 ## Publicar no GitHub Pages
 1. Repositório: `Recepcao-Convenio/pantheonapp` → https://recepcao-convenio.github.io/pantheonapp/
 2. Em *Settings → Pages*, escolha *Deploy from a branch*, branch `main`, pasta `/ (root)`.
-3. O app fica em `https://SEU-USUARIO.github.io/pantheonnamao/`.
 
 ## Instalar no celular
 - **iPhone (Safari):** abrir o link → Compartilhar → *Adicionar à Tela de Início*.
@@ -20,10 +19,11 @@ O GitHub Pages é público, então os números **não** ficam abertos no reposit
 - **KPI:** lido ao vivo do site `faturamento-pantheon.github.io/kpipantheon` toda vez que o app abre (se o site não responder, usa a última cópia salva).
 - **KPI → Satisfação:** lida ao vivo da planilha do formulário.
 - **Estoque:** lido ao vivo (somente leitura) do Controle de Estoque (`estoque-pantheon`, documento `pantheon/estoque`).
-- **Financeiro, Operacional e Glosas:** uma tarefa agendada diária lê a versão mais recente dos relatórios (Financeiro Pantheon de cada mês, Pantheon Analytics e Glosas Pantheon), roda `tools/atualizar.py` e publica um novo `data.enc.json` só quando algum número mudou.
+- **Operacional e Glosas:** uma tarefa agendada diária lê a versão mais recente dos relatórios (Pantheon Analytics e Glosas Pantheon), roda `tools/atualizar.py` e publica um novo `data.enc.json` só quando algum número mudou.
+- **Financeiro:** vem do *Relatório Financeiro Premium Pantheon* (PDF). A cada mês novo, rode o `tools/atualizar.py` com `--financeiro-pdf` apontando para o PDF do mês: ele acrescenta o mês sem apagar os anteriores e confere o extrato analítico contra as tabelas do relatório antes de publicar.
 
 Para rodar a atualização à mão:
-`python3 tools/atualizar.py --pin PIN --glosas glosas.html --analytics analytics.html --financeiro fin_set.html [fin_out.html ...] --kpi kpi.html`
+`python3 tools/atualizar.py --pin PIN --glosas glosas.html --analytics analytics.html --kpi kpi.html [--financeiro-pdf Relatorio_Financeiro_Premium_Pantheon_Mes.pdf]`
 
 ## Trocar o PIN
 Rode o passo 2 acima com o PIN novo e publique o `data.enc.json`.

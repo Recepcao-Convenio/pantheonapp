@@ -9,8 +9,12 @@ Uso:
   python3 tools/atualizar.py --pin PIN \
       --glosas glosas.html \
       --analytics analytics.html \
-      --financeiro fin_set.html [fin_out.html ...] \
+      [--financeiro-pdf Relatorio_Financeiro_Premium_Pantheon_<mês>.pdf ...] \
       [--kpi kpipantheon_index.html]
+
+Financeiro: vem do "Relatório Financeiro Premium Pantheon" (PDF). Os meses já
+publicados são mantidos; um PDF novo acrescenta (ou substitui) só os meses dele.
+Sem --financeiro-pdf, o Financeiro publicado fica como está.
 
 Saída (última linha): "SEM MUDANCAS" ou "ATUALIZADO: <o que mudou>".
 Regras fixas: só dados da Pantheon (nada da Lótus by Pantheon) e sem Bee Lab.
@@ -192,18 +196,34 @@ def main():
     ap.add_argument("--pin", required=True)
     ap.add_argument("--glosas", required=True)
     ap.add_argument("--analytics", required=True)
-    ap.add_argument("--financeiro", nargs="+", required=True)
+    ap.add_argument("--financeiro-pdf", nargs="+", dest="financeiro_pdf")
+    ap.add_argument("--financeiro", nargs="+",
+                    help="(antigo) relatórios HTML do Financeiro — ignorados quando o app já usa o relatório Premium")
     ap.add_argument("--kpi")
     a = ap.parse_args()
 
     atual = abrir_atual(a.pin)  # falha aqui = PIN errado; nada é gravado
     novo = dict(atualizado=dt.date.today().isoformat())
 
-    fins = {}
-    for f in a.financeiro:
-        m = financeiro_mes(ler(f))
-        fins[m["ym"]] = m
-    novo["financeiro"] = [fins[k] for k in sorted(fins)]
+    fin_atual = (atual or {}).get("financeiro") or []
+    premium = any(m.get("fonte") == "Relatório Financeiro Premium" for m in fin_atual)
+    if a.financeiro_pdf:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import financeiro_pdf
+        fins = {m["ym"]: m for m in fin_atual if m.get("fonte") == "Relatório Financeiro Premium"}
+        for m in financeiro_pdf.ler_varios(a.financeiro_pdf):
+            fins[m["ym"]] = m
+        novo["financeiro"] = [fins[k] for k in sorted(fins)]
+    elif a.financeiro and not premium:
+        fins = {}
+        for f in a.financeiro:
+            m = financeiro_mes(ler(f))
+            fins[m["ym"]] = m
+        novo["financeiro"] = [fins[k] for k in sorted(fins)]
+    else:
+        if a.financeiro:
+            print("aviso: Financeiro já usa o Relatório Premium — relatórios HTML antigos ignorados")
+        novo["financeiro"] = fin_atual
     novo["operacional"] = operacional(ler(a.analytics))
     novo["glosas"] = glosas(ler(a.glosas))
     novo["kpi"] = kpi(ler(a.kpi), (atual or {}).get("kpi")) if a.kpi else (atual or {}).get("kpi")

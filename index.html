@@ -155,6 +155,7 @@ details[open] .chev{transform:rotate(90deg)}
 .tbl td:first-child,.tbl th:first-child{text-align:left;white-space:normal}
 .tbl tr:last-child td{border-bottom:0}
 .tbl .neg{color:var(--neg)} .tbl .pos{color:var(--pos)}
+.tbl.compacta th,.tbl.compacta td{padding:8px 4px}
 .tbl tfoot td{font-weight:700;border-top:1px solid var(--line)}
 .scroll{overflow-x:auto}
 
@@ -417,8 +418,9 @@ function vInicio(){
   const top = medAgg(L,L).filter(x=>!x.rad).sort((a,b)=>b.v-a.v).slice(0,3);
 
   const alerts=[];
-  if (f.resultado<0) alerts.push(['neg',`Resultado da conta Itaú em ${f.mes.split('/')[0].toLowerCase()} ficou em <b>${brl0(f.resultado)}</b> (saídas maiores que entradas).`,'#financeiro']);
-  if (f.saldo_fim<0) alerts.push(['neg',`Saldo em ${fimMes(f.ym)} de <b>${brl0(f.saldo_fim)}</b> — conta usando o limite.`,'#financeiro']);
+  if (f.resultado<0) alerts.push(['neg',`Resultado operacional de ${f.mes.split('/')[0].toLowerCase()} ficou em <b>${brl0(f.resultado)}</b> (saídas maiores que entradas).`,'#financeiro']);
+  const fAnt = D.financeiro.at(-2);
+  if (fAnt && f.ent_total && fAnt.ent_total && margem(f) < margem(fAnt) - 0.005) alerts.push(['',`Margem operacional caiu para <b>${pctN(margem(f))}</b> em ${f.mes.split('/')[0].toLowerCase()} (era ${pctN(margem(fAnt))} em ${finLabel(fAnt)}).`,'#financeiro']);
   const ult=gP.at(-1); if (ult && ult.glosado/ult.cobrado>0.05) alerts.push(['',`Glosa da ${ult.label.toLowerCase()} chegou a <b>${pct(ult.glosado,ult.cobrado)}</b> do cobrado (${brl0(ult.glosado)}).`,'#glosas']);
   if (pendN) alerts.push(['',`<b>${pendN} guias</b> com glosa pendente de documentação (${brl0(pendV)}).`,'#glosas']);
   if (m.v>=Math.max(...o.months.map(x=>x.v))) alerts.push(['pos',`Produção de ${MESF[L].toLowerCase()} foi a maior do ano: <b>${brl0(m.v)}</b>.`,'#operacional']);
@@ -427,9 +429,9 @@ function vInicio(){
   <div><div class="eyebrow">Visão do dono</div><h1 class="title">${MESF[L]} de 2026<small>RESUMO DO ÚLTIMO MÊS FECHADO</small></h1></div>
   <div class="kpis">
     ${kpi('Produção da clínica', brlK(m.v)+delta(m.v,mp.v), `${nf(m.at)} atendimentos · ${nf(m.pac)} pacientes`, 'hero wide')}
-    ${kpi('Entradas na conta', brlK(f.ent_total), 'Itaú, líquido dos repasses')}
-    ${kpi('Saídas da conta', brlK(f.tot_out), pct(f.tot_out,f.ent_total)+' das entradas')}
-    ${kpi('Resultado do caixa', brlK(f.resultado), 'entradas − saídas', f.resultado<0?'neg':'pos')}
+    ${kpi('Entradas', brlK(f.ent_total), 'conta Itaú · '+f.mes.split('/')[0].toLowerCase())}
+    ${kpi('Saídas', brlK(f.tot_out), pct(f.tot_out,f.ent_total)+' das entradas')}
+    ${kpi('Resultado operacional', brlK(f.resultado), 'margem de '+pctN(margem(f)), f.resultado<0?'neg':'pos')}
     ${kpi('Glosado no mês', brlK(glV), pct(glV,glC)+' do cobrado no AMHP', glV/glC>0.05?'neg':'')}
   </div>
   ${alerts.length?`<div class="card"><div class="card-head"><div><h2>Pontos de atenção</h2></div></div><div class="alerts">${alerts.map(a=>`<a class="alert ${a[0]}" href="${a[2]}"><span>${a[1]}</span><span class="go">›</span></a>`).join('')}</div></div>`:''}
@@ -454,39 +456,44 @@ function vInicio(){
 }
 
 /* ===================== FINANCEIRO ===================== */
-const fimMes = ym => { const [a,m]=ym.split('-').map(Number); const d=new Date(a,m,0); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); };
-const fimAnt = ym => { const [a,m]=ym.split('-').map(Number); const d=new Date(a,m-1,0); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); };
+const finLabel = x => MES[+x.ym.slice(5)-1]+'/'+x.ym.slice(2,4);
+const margem = x => x.ent_total ? x.resultado/x.ent_total : 0;
+const pctN = (v,d=1) => (v*100).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})+'%';
+const ENT_CURTA = {'Recebimento de Convênio/Associação Médica':'Convênio — AMHPDF (parte da Pantheon)','Recebimento de Pacientes – Cartão (Débito/Crédito)':'Cartão (débito/crédito)','Recebimento de Pacientes – PIX':'PIX de pacientes','Entrada Lucas (Neuron)':'Entrada Lucas (Neuron)','Outras Entradas Operacionais':'Outras entradas'};
 function vFin(){
   const F=D.financeiro; if (ST.finIdx===null||ST.finIdx>=F.length) ST.finIdx=F.length-1;
-  const f=F[ST.finIdx];
-  const chips = F.length>1 ? `<div class="chips">${F.map((x,i)=>`<button class="chip" aria-pressed="${ST.finIdx===i}" onclick="ST.finIdx=${i};rerender()">${MES[+x.ym.slice(5)-1]}/${x.ym.slice(2,4)}</button>`).join('')}</div>` : '';
-  const evo = F.length>1 ? `<div class="card"><div class="card-head"><div><h2>Evolução mês a mês</h2><div class="sub">Entradas × saídas da conta Itaú</div></div></div>${colChart(F.map(x=>MES[+x.ym.slice(5)-1]),[{name:'Entradas',data:F.map(x=>x.ent_total),color:'var(--c1)'},{name:'Saídas',data:F.map(x=>x.tot_out),color:'var(--c2)'}],{hl:ST.finIdx})}
-    <table class="tbl" style="margin-top:10px"><thead><tr><th>Mês</th><th>Entradas</th><th>Saídas</th><th>Resultado</th></tr></thead><tbody>${F.map(x=>`<tr><td>${MES[+x.ym.slice(5)-1]}/${x.ym.slice(2,4)}</td><td>${brlK(x.ent_total)}</td><td>${brlK(x.tot_out)}</td><td class="${x.resultado<0?'neg':'pos'}">${brlK(x.resultado)}</td></tr>`).join('')}</tbody></table></div>` : '';
-  const ent=[
-    {n:'AMHPDF — parte da Pantheon', k:'convênio', v:f.amh_liq, c:'var(--c1)', det:[['TEDs do AMHPDF',f.amhpdf],['(−) Repasse GEROMASTER',-f.gero],['(−) Repasse 2ª conta Pantheon',-f.seg_out],['(+) Retorno da 2ª conta',f.seg_in]]},
-    {n:'Cartões', k:`${f.n_cartoes} recebimentos`, v:f.cartoes, c:'var(--c2)'},
-    {n:'PIX de pacientes', k:`${f.n_pix} recebimentos`, v:f.part, c:'var(--c3)'},
-    {n:'Revita', k:'clínica parceira', v:f.revita, c:'var(--c4)'},
-  ].sort((a,b)=>b.v-a.v);
-  const sai=f.cats.map(c=>({n:c.nome, k:`${c.n} lanç.`, v:c.valor, c:'var(--c2)', det:c.det.slice(0,8).map(d=>[nome(d.nome),d.valor])}));
-  const sd=f.saldo_diario.map(x=>[x.dia,x.saldo]);
+  const f=F[ST.finIdx], fp=ST.finIdx>0?F[ST.finIdx-1]:null;
+  const chips = F.length>1 ? `<div class="chips">${F.map((x,i)=>`<button class="chip" aria-pressed="${ST.finIdx===i}" onclick="ST.finIdx=${i};rerender()">${finLabel(x)}</button>`).join('')}</div>` : '';
+  const cores=['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)'];
+  const a=f.amhpdf;
+  const ent=Object.entries(f.entradas).filter(([,v])=>v>0).map(([n,v],i)=>({n:ENT_CURTA[n]||n, v, c:cores[i%5],
+    det: n.startsWith('Recebimento de Convênio') ? [['Recebido da Associação (bruto)',a.bruto],['(−) Repasse GEROMASTER',-a.gero],...(a.segunda?[['(−) Repasse 2ª conta Pantheon',-a.segunda]]:[]),['= Parte da Pantheon',a.liquido]] : null
+  })).sort((x,y)=>y.v-x.v);
+  const sai=f.cats.map(c=>({n:c.nome, k:`${c.n} lanç.`, v:c.valor, c:'var(--c2)', det:c.det.map(d=>[nome(d[0]),d[1]])}));
+  const tp=f.ticket.pix, tc=f.ticket.cartao;
+  const tot = F.reduce((s,x)=>({e:s.e+x.ent_total,s:s.s+x.tot_out,r:s.r+x.resultado}),{e:0,s:0,r:0});
+  const evo = F.length>1 ? `<div class="card"><div class="card-head"><div><h2>Evolução mês a mês</h2><div class="sub">Entradas × saídas operacionais · tabela em R$ mil</div></div></div>${colChart(F.map(finLabel),[{name:'Entradas',data:F.map(x=>x.ent_total),color:'var(--c1)'},{name:'Saídas',data:F.map(x=>x.tot_out),color:'var(--c2)'}],{hl:ST.finIdx})}
+    <div class="scroll"><table class="tbl compacta" style="margin-top:10px"><thead><tr><th>Mês</th><th>Entr.</th><th>Saídas</th><th>Result.</th><th>Marg.</th></tr></thead><tbody>${F.map(x=>`<tr><td>${finLabel(x)}</td><td>${mil(x.ent_total)}</td><td>${mil(x.tot_out)}</td><td class="${x.resultado<0?'neg':'pos'}">${mil(x.resultado)}</td><td>${pctN(margem(x))}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td>Total</td><td>${mil(tot.e)}</td><td>${mil(tot.s)}</td><td class="${tot.r<0?'neg':'pos'}">${mil(tot.r)}</td><td>${pctN(tot.e?tot.r/tot.e:0)}</td></tr></tfoot></table></div></div>` : '';
+  const dm = fp ? (margem(f)-margem(fp))*100 : null;
   return `
-  <div><div class="eyebrow">Financeiro</div><h1 class="title">${f.mes}<small>CONTA ITAÚ · ${f.periodo}</small></h1></div>
+  <div><div class="eyebrow">Financeiro</div><h1 class="title">${f.mes}<small>CONTA ITAÚ · RESULTADO OPERACIONAL</small></h1></div>
   ${chips}
   <div class="kpis">
-    ${kpi('Entradas', brlK(f.ent_total), 'AMHPDF líquido + cartões + PIX')}
-    ${kpi('Saídas', brlK(f.tot_out), pct(f.tot_out,f.ent_total)+' das entradas')}
-    ${kpi('Resultado do mês', brlK(f.resultado), 'entradas − saídas', f.resultado<0?'neg':'pos')}
-    ${kpi('Saldo em '+fimMes(f.ym), brlK(f.saldo_fim), 'em '+fimAnt(f.ym)+': '+brl0(f.saldo_ini), f.saldo_fim<0?'neg':'pos')}
+    ${kpi('Resultado operacional', brlK(f.resultado)+(fp?delta(f.resultado,fp.resultado):''), `margem de ${pctN(margem(f))}${dm!==null?` · ${dm>=0?'+':''}${dm.toLocaleString('pt-BR',{maximumFractionDigits:1})} p.p. vs ${finLabel(fp)}`:''}`, 'hero wide')}
+    ${kpi('Entradas', brlK(f.ent_total)+(fp?delta(f.ent_total,fp.ent_total):''), 'AMHPDF líquido + pacientes')}
+    ${kpi('Saídas', brlK(f.tot_out)+(fp?delta(f.tot_out,fp.tot_out,true):''), pct(f.tot_out,f.ent_total)+' das entradas')}
+    ${kpi('Ticket médio PIX', tp.n?brl0(tp.v/tp.n):'—', `${nf(tp.n)} PIX de pacientes`)}
+    ${kpi('Ticket médio cartão', tc.n?brl0(tc.v/tc.n):'—', `${nf(tc.n)} transações`)}
   </div>
   ${evo}
-  <div class="card"><div class="card-head"><div><h2>De onde veio o dinheiro</h2><div class="sub">Toque no AMHPDF para ver os repasses</div></div></div>${bars(ent,f.ent_total)}</div>
+  <div class="card"><div class="card-head"><div><h2>De onde veio o dinheiro</h2><div class="sub">Toque no convênio para ver os repasses da Associação</div></div></div>${bars(ent,f.ent_total)}</div>
   <div class="card"><div class="card-head"><div><h2>Para onde foi</h2><div class="sub">Toque numa categoria para ver os maiores pagamentos</div></div></div>${bars(sai,f.tot_out)}</div>
   <div class="card"><div class="card-head"><div><h2>Resultado por quinzena</h2></div></div>
     <table class="tbl"><thead><tr><th>Quinzena</th><th>Entradas</th><th>Saídas</th><th>Resultado</th></tr></thead><tbody>
     ${f.quinzenas.map(q=>`<tr><td>${q.quinzena.replace(' quinzena','').replace('(','<br><span class="note">(')+'</span>'}</td><td>${brlK(q.entradas)}</td><td>${brlK(q.saidas)}</td><td class="${q.resultado<0?'neg':'pos'}">${brlK(q.resultado)}</td></tr>`).join('')}
     </tbody></table></div>
-  <div class="card"><div class="card-head"><div><h2>Saldo diário da conta</h2><div class="sub">Pico de ${brl0(f.max_saldo.saldo)} no dia ${f.max_saldo.dia}; abaixo de zero a conta usa o limite</div></div></div>${lineChart(sd)}</div>`;
+  <p class="note">Fonte: Relatório Financeiro Premium Pantheon. Resultado operacional não é saldo em conta: aplicação financeira, linha de crédito, cartão corporativo e transferências não operacionais ficam fora; do convênio entra só a parte da Pantheon (descontados os repasses à GEROMASTER e à 2ª conta).</p>`;
 }
 
 /* ===================== OPERACIONAL ===================== */
