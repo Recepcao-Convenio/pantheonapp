@@ -469,7 +469,7 @@ function vFin(){
   const ent=Object.entries(f.entradas).filter(([,v])=>v>0).map(([n,v],i)=>({n:ENT_CURTA[n]||n, v, c:cores[i%5],
     det: n.startsWith('Recebimento de Convênio') ? [['Recebido da Associação (bruto)',a.bruto],['(−) Repasse GEROMASTER',-a.gero],...(a.segunda?[['(−) Repasse 2ª conta Pantheon',-a.segunda]]:[]),['= Parte da Pantheon',a.liquido]] : null
   })).sort((x,y)=>y.v-x.v);
-  const sai=f.cats.map(c=>({n:c.nome, k:`${c.n} lanç.`, v:c.valor, c:'var(--c2)', det:c.det.map(d=>[nome(d[0]),d[1]])}));
+  const sai=f.cats.map(c=>({n:c.nome, k:`${c.n} lanç.`, v:c.valor, c:'var(--c2)', det:c.det.map(d=>[d[0].startsWith('(')?d[0]:nome(d[0]),d[1]])}));
   const tp=f.ticket.pix, tc=f.ticket.cartao;
   const tot = F.reduce((s,x)=>({e:s.e+x.ent_total,s:s.s+x.tot_out,r:s.r+x.resultado}),{e:0,s:0,r:0});
   const evo = F.length>1 ? `<div class="card"><div class="card-head"><div><h2>Evolução mês a mês</h2><div class="sub">Entradas × saídas operacionais · tabela em R$ mil</div></div></div>${colChart(F.map(finLabel),[{name:'Entradas',data:F.map(x=>x.ent_total),color:'var(--c1)'},{name:'Saídas',data:F.map(x=>x.tot_out),color:'var(--c2)'}],{hl:ST.finIdx})}
@@ -493,7 +493,7 @@ function vFin(){
     <table class="tbl"><thead><tr><th>Quinzena</th><th>Entradas</th><th>Saídas</th><th>Resultado</th></tr></thead><tbody>
     ${f.quinzenas.map(q=>`<tr><td>${q.quinzena.replace(' quinzena','').replace('(','<br><span class="note">(')+'</span>'}</td><td>${brlK(q.entradas)}</td><td>${brlK(q.saidas)}</td><td class="${q.resultado<0?'neg':'pos'}">${brlK(q.resultado)}</td></tr>`).join('')}
     </tbody></table></div>
-  <p class="note">Fonte: Relatório Financeiro Premium Pantheon. Resultado operacional não é saldo em conta: aplicação financeira, linha de crédito, cartão corporativo e transferências não operacionais ficam fora; do convênio entra só a parte da Pantheon (descontados os repasses à GEROMASTER e à 2ª conta).</p>`;
+  <p class="note">Fonte: Relatório Financeiro Premium Pantheon. Resultado operacional não é saldo em conta: aplicação financeira, linha de crédito, cartão corporativo e transferências não operacionais ficam fora; do convênio entra só a parte da Pantheon (descontados os repasses à GEROMASTER e à 2ª conta). Reembolsos de custos divididos com a clínica parceira não contam como receita: são abatidos de Fornecedores${f.reembolso_parceira?` (${brl(f.reembolso_parceira)} neste mês)`:''}.</p>`;
 }
 
 /* ===================== OPERACIONAL ===================== */

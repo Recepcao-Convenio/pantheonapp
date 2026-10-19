@@ -11,6 +11,13 @@ real da Associação). O anexo (extrato analítico) é usado para o detalhe: mai
 pagamentos por categoria, quinzenas e tickets médios. O leitor confere se o anexo
 fecha com as tabelas, centavo a centavo, e para com erro se não fechar.
 
+Regra fixa (definida pela Anna): todo valor recebido da Clínica Lótus é reembolso da
+parte dela em custos divididos (ex.: medicação da STIN), não receita. Ele sai das
+entradas e é abatido de "Fornecedores de Produtos e Insumos Médicos" no mesmo mês —
+direto da linha da STIN quando ela foi paga no mesmo dia; os demais numa linha
+"(−) Reembolso de custo dividido". O resultado
+operacional não muda. O nome da Lótus nunca vai para os dados do app.
+
 Requer o programa pdftotext (pacote poppler-utils).
 """
 import re
@@ -176,9 +183,10 @@ def anexo_entradas(txt):
                 break
         if not cat:
             cat = "?" + " ".join([resto] + viz)
+        parceira = bool(re.search(r"L[OÓ]TUS", " ".join([resto] + viz), re.I))
         # sinal preservado: devolução de PIX vem negativa e abate a categoria
         rows.append(dict(dia=int(m.group(1)), mes=int(m.group(2)), ano=int(m.group(3)),
-                         valor=num(m.group(7)), cat=cat))
+                         valor=num(m.group(7)), cat=cat, parceira=parceira))
     return rows
 
 
@@ -235,11 +243,30 @@ def ler(pdf):
             raise ValueError(f"{MESES[mes-1]}/{ano}: repasses da Associação não fecham "
                              f"({ab['bruto']} - {gero} - {seg} != {ab['liquido']})")
 
-        ent = {c: ent_tab.get(c, [0] * n)[j] for c in ENTRADAS}
+        # --- reembolsos da clínica parceira: saem das entradas e abatem Fornecedores ---
+        FORN = "Fornecedores de Produtos e Insumos Médicos"
+        reemb = [r for r in E if r["parceira"] and r["cat"] in ENTRADAS]
+        abat_ent = defaultdict(float)
+        abat_forn = defaultdict(float)   # descrição do fornecedor (ou None) -> valor
+        for r in reemb:
+            abat_ent[r["cat"]] += r["valor"]
+            # só a STIN tem vínculo confirmado (parte da Lótus na medicação comprada junto)
+            mesmo_dia = [x for x in S if x["cat"] == FORN and x["dia"] == r["dia"] and x["valor"] >= r["valor"]
+                         and "STIN" in x["desc"].upper()]
+            alvo = max(mesmo_dia, key=lambda x: x["valor"])["desc"] if mesmo_dia else None
+            abat_forn[alvo] += r["valor"]
+        total_reemb = round(sum(abat_ent.values()), 2)
+        if total_reemb > sai_tab.get(FORN, [0] * n)[j] + 0.01:
+            raise ValueError(f"{MESES[mes-1]}/{ano}: reembolso da clínica parceira maior que o gasto com fornecedores")
+        E = [r for r in E if not (r["parceira"] and r["cat"] in ENTRADAS)]
+
+        ent = {c: round(ent_tab.get(c, [0] * n)[j] - abat_ent.get(c, 0), 2) for c in ENTRADAS}
         ent_total = round(sum(ent.values()), 2)
         cats = []
         for c in SAIDAS:
             v = sai_tab.get(c, [0] * n)[j]
+            if c == FORN:
+                v = round(v - total_reemb, 2)
             if v <= 0:
                 continue
             por = defaultdict(lambda: [0.0, 0])
@@ -247,11 +274,19 @@ def ler(pdf):
                 if r["cat"] == c:
                     por[r["desc"] or "—"][0] += r["valor"]
                     por[r["desc"] or "—"][1] += 1
-            det = sorted(([k, round(x[0], 2)] for k, x in por.items()), key=lambda z: -z[1])
-            cats.append(dict(nome=c, valor=v, n=sum(1 for r in S if r["cat"] == c), pag=len(por), det=det[:8]))
+            if c == FORN:
+                for alvo, val in abat_forn.items():
+                    if alvo and alvo in por:
+                        por[alvo][0] -= val
+                    else:
+                        por["(−) Reembolso de custo dividido"][0] -= val
+            det = sorted(([k, round(x[0], 2)] for k, x in por.items() if abs(x[0]) > 0.004), key=lambda z: -z[1])
+            positivos = [d for d in det if d[1] > 0][:8] + [d for d in det if d[1] < 0]
+            cats.append(dict(nome=c, valor=v, n=sum(1 for r in S if r["cat"] == c), pag=len(por), det=positivos))
         cats.sort(key=lambda z: -z["valor"])
         tot_out = round(sum(c["valor"] for c in cats), 2)
-        if abs(tot_out - sai_tab["__total__"][j]) > 0.01 or abs(ent_total - ent_tab["__total__"][j]) > 0.01:
+        if (abs(tot_out + total_reemb - sai_tab["__total__"][j]) > 0.01
+                or abs(ent_total + total_reemb - ent_tab["__total__"][j]) > 0.01):
             raise ValueError(f"{MESES[mes-1]}/{ano}: totais não batem com o relatório")
 
         # quinzenas (Associação entra pelo líquido: TED na data, repasses descontados na data)
@@ -259,11 +294,12 @@ def ler(pdf):
             e = sum(r["valor"] for r in E if f(r["dia"]) and r["cat"] in ENTRADAS)
             e -= sum(r["valor"] for r in rep if f(r["dia"]) and ("GEROMASTER" in r["desc"].upper() or "PANTHEON" in r["desc"].upper()))
             s = sum(r["valor"] for r in S if f(r["dia"]) and r["cat"] in SAIDAS)
+            s -= sum(r["valor"] for r in reemb if f(r["dia"]))
             return round(e, 2), round(s, 2)
         q1, q2 = quinz(lambda d: d <= 15), quinz(lambda d: d > 15)
         quinzenas = [dict(quinzena="1ª quinzena (01 a 15)", entradas=q1[0], saidas=q1[1], resultado=round(q1[0] - q1[1], 2)),
                      dict(quinzena=f"2ª quinzena (16 a {max([r['dia'] for r in S + E] or [30])})", entradas=q2[0], saidas=q2[1], resultado=round(q2[0] - q2[1], 2))]
-        if abs(q1[0] + q2[0] - ent_total) > 0.05:
+        if abs(q1[0] + q2[0] - ent_total) > 0.05 or abs(q1[1] + q2[1] - tot_out) > 0.05:
             raise ValueError(f"{MESES[mes-1]}/{ano}: quinzenas não fecham com as entradas ({q1[0]+q2[0]} x {ent_total})")
 
         pix = [r["valor"] for r in E if r["cat"] == ENTRADAS[2]]
@@ -279,6 +315,7 @@ def ler(pdf):
             quinzenas=quinzenas,
             ticket=dict(pix=dict(n=sum(1 for v in pix if v > 0), v=round(sum(pix), 2)),
                         cartao=dict(n=sum(1 for v in car if v > 0), v=round(sum(car), 2))),
+            reembolso_parceira=total_reemb,
             fonte="Relatório Financeiro Premium",
         ))
     return out

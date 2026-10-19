@@ -20,7 +20,7 @@ O GitHub Pages é público, então os números **não** ficam abertos no reposit
 - **KPI → Satisfação:** lida ao vivo da planilha do formulário.
 - **Estoque:** lido ao vivo (somente leitura) do Controle de Estoque (`estoque-pantheon`, documento `pantheon/estoque`).
 - **Operacional e Glosas:** uma tarefa agendada diária lê a versão mais recente dos relatórios (Pantheon Analytics e Glosas Pantheon), roda `tools/atualizar.py` e publica um novo `data.enc.json` só quando algum número mudou.
-- **Financeiro:** vem do *Relatório Financeiro Premium Pantheon* (PDF). A cada mês novo, rode o `tools/atualizar.py` com `--financeiro-pdf` apontando para o PDF do mês: ele acrescenta o mês sem apagar os anteriores e confere o extrato analítico contra as tabelas do relatório antes de publicar.
+- **Financeiro:** vem do *Relatório Financeiro Premium Pantheon* (PDF). A cada mês novo, rode o `tools/atualizar.py` com `--financeiro-pdf` apontando para o PDF do mês: ele acrescenta o mês sem apagar os anteriores e confere o extrato analítico contra as tabelas do relatório antes de publicar. Valores recebidos da clínica parceira são reembolso de custo dividido (ex.: medicação da STIN): saem das entradas e abatem Fornecedores no mesmo mês — o resultado operacional não muda.
 
 Para rodar a atualização à mão:
 `python3 tools/atualizar.py --pin PIN --glosas glosas.html --analytics analytics.html --kpi kpi.html [--financeiro-pdf Relatorio_Financeiro_Premium_Pantheon_Mes.pdf]`
