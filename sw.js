@@ -1,6 +1,6 @@
 // Pantheon na Mão — service worker
 // Troque a versão quando publicar mudanças no app para os celulares atualizarem.
-const VERSAO = 'pantheon-v9';
+const VERSAO = 'pantheon-v10';
 const BASE = ['./', 'index.html', 'manifest.webmanifest', 'icons/logo.png',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
@@ -24,9 +24,11 @@ self.addEventListener('fetch', e => {
   const redePrimeiro = url.origin === location.origin &&
     (req.mode === 'navigate' || url.pathname.endsWith('data.enc.json') || url.pathname.endsWith('.html'));
   if (redePrimeiro) {
-    e.respondWith(fetch(req).then(r => {
-      const copia = r.clone(); caches.open(VERSAO).then(c => c.put(req, copia)); return r;
-    }).catch(() => caches.match(req).then(r => r || caches.match('index.html'))));
+    e.respondWith(fetch(req, {cache:'no-store'}).then(r => {
+      // guarda uma única cópia (sem o ?v=...) para uso offline
+      const chave = url.pathname.endsWith('data.enc.json') ? new Request(url.origin + url.pathname) : req;
+      const copia = r.clone(); caches.open(VERSAO).then(c => c.put(chave, copia)); return r;
+    }).catch(() => caches.match(req, {ignoreSearch:true}).then(r => r || caches.match('index.html'))));
     return;
   }
   // Ícones, fontes, bibliotecas: cache primeiro

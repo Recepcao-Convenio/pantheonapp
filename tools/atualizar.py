@@ -203,7 +203,8 @@ def main():
     a = ap.parse_args()
 
     atual = abrir_atual(a.pin)  # falha aqui = PIN errado; nada é gravado
-    novo = dict(atualizado=dt.date.today().isoformat())
+    agora = dt.datetime.now(dt.timezone(dt.timedelta(hours=-3)))  # horário de Brasília
+    novo = dict(atualizado=agora.strftime("%Y-%m-%dT%H:%M"))
 
     fin_atual = (atual or {}).get("financeiro") or []
     premium = any(m.get("fonte") == "Relatório Financeiro Premium" for m in fin_atual)

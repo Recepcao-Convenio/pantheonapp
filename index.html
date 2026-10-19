@@ -323,7 +323,8 @@ $('#pad').addEventListener('click', e => { const b=e.target.closest('button'); i
 document.addEventListener('keydown', e => { if($('#lock').hidden) return; if(/^\d$/.test(e.key)) press(e.key); else if(e.key==='Backspace') press('⌫'); });
 function lock(){ D=null; pin=''; drawDots(); $('#main').innerHTML=''; $('#app').hidden=true; $('#lock').hidden=false; $('#pinHint').className='hint'; $('#pinHint').textContent='Digite o PIN para entrar'; }
 function unlock(){ $('#lock').hidden=true; $('#app').hidden=false; pin='';
-  const a = (D.atualizado||'').split('-'); $('#hdrMeta').innerHTML = a.length===3 ? `Atualizado<br>${a[2]}/${a[1]}/${a[0]}` : '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(D.atualizado||'');
+  $('#hdrMeta').innerHTML = m ? `Atualizado<br>${m[3]}/${m[2]}${m[4]?' às '+m[4]+'h'+m[5]:'/'+m[1]}` : '';
   D.kpiAoVivo = false; route(); kpiAoVivo(); }
 
 /* --- KPI ao vivo: lê os números direto do site do KPI --- */
@@ -367,17 +368,28 @@ async function kpiAoVivo(){
   } catch(e) { if (D) D.kpiAoVivo = false; console.warn('KPI ao vivo indisponível, usando cópia salva:', e.message); }
 }
 $('#btnLock').onclick = lock;
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) hiddenAt = Date.now();
-  else if (D && hiddenAt && Date.now()-hiddenAt > BLOQUEIO_MIN*60e3) lock();
+document.addEventListener('visibilitychange', async () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (D && hiddenAt && Date.now()-hiddenAt > BLOQUEIO_MIN*60e3) { lock(); }
+  // ao voltar para o app, confere se há dados novos publicados
+  const novo = await carregarDados();
+  if (novo && ENC && novo.ct !== ENC.ct) {
+    ENC = novo; PINLEN = ENC.n || PINLEN;
+    if (D) { lock(); $('#pinHint').textContent = 'Dados atualizados — digite o PIN'; }
+  } else if (novo && !ENC) { ENC = novo; PINLEN = ENC.n || PINLEN; drawDots(); }
 });
+// busca sempre a versão mais nova (o endereço único evita cópias antigas no caminho)
+async function carregarDados(){
+  try { const r = await fetch('data.enc.json?v=' + Date.now(), {cache:'no-store'}); if (!r.ok) throw 0; return await r.json(); }
+  catch(e) { try { const r = await fetch('data.enc.json'); return await r.json(); } catch(e2) { return null; } }
+}
 async function boot(){
   const h=new Date().getHours(); $('#greet').textContent = h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
   const hj = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}); $('#today').textContent = hj.charAt(0).toUpperCase()+hj.slice(1);
   drawPad(); drawDots();
   try {
-    const r = await fetch('data.enc.json', {cache:'no-cache'});
-    ENC = await r.json(); PINLEN = ENC.n || 6; drawDots();
+    ENC = await carregarDados(); if (!ENC) throw new Error('sem dados');
+    PINLEN = ENC.n || 6; drawDots();
   } catch(e) { $('#pinHint').className='hint err'; $('#pinHint').textContent='Não consegui carregar os dados. Verifique a internet.'; }
 }
 
