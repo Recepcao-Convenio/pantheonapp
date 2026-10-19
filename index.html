@@ -156,6 +156,9 @@ details[open] .chev{transform:rotate(90deg)}
 .tbl tr:last-child td{border-bottom:0}
 .tbl .neg{color:var(--neg)} .tbl .pos{color:var(--pos)}
 .tbl.compacta th,.tbl.compacta td{padding:8px 4px}
+.tbl.lista th,.tbl.lista td{text-align:left;white-space:normal;padding:8px 5px}
+.tbl.lista td:first-child,.tbl.lista th:first-child{white-space:nowrap}
+.tbl.lista td:last-child,.tbl.lista th:last-child{text-align:right;white-space:nowrap}
 .tbl tfoot td{font-weight:700;border-top:1px solid var(--line)}
 .scroll{overflow-x:auto}
 
@@ -395,7 +398,7 @@ async function boot(){
 
 /* ===================== Rotas ===================== */
 const VIEWS = { inicio:vInicio, financeiro:vFin, operacional:vOp, kpi:vKpi, glosas:vGlosas, estoque:vEstoque };
-const ST = { opMes: null, opTipo: -1, finIdx: null, kSec: 'geral', kMes: -1, satMes: 'all' };
+const ST = { opMes: null, opTipo: -1, finIdx: null, kSec: 'geral', kMes: -1, satMes: 'all', estAba: 'tirz', tirzPer: 0 };
 function route(){
   if (!D) return;
   const v = (location.hash||'#inicio').slice(1).split('/')[0];
@@ -753,31 +756,36 @@ function vGlosas(){
 // Lido ao vivo (somente leitura) do documento pantheon/estoque do sistema de estoque.
 let EST = null, estErr = null, estQ = '', estCat = '', estHora = '';
 const estStatus = i => i.atual<=0 ? 'zerado' : i.atual<=i.min ? 'baixo' : 'ok';
+const AMP_UI = 240; // cada ampola de tirzepatida: 60 mg · 2,4 ml · 240 UI (seringa U-100)
+const dBR = s => { const m=/^(\d{2})\/(\d{2})\/(\d{4})/.exec(String(s||'')); return m ? new Date(+m[3],+m[2]-1,+m[1]) : null; };
+const semParceira = s => String(s??'').replace(/(cl[ií]nica\s+)?l[oó]tus(\s+by\s+pantheon)?/gi,'Clínica parceira');
 function estHead(){ return `<div><div class="eyebrow">Estoque</div><h1 class="title">Estoque Pantheon<small>AO VIVO DO CONTROLE DE ESTOQUE${estHora?' · '+estHora:''}</small></h1></div>`; }
+function estSeg(){ return `<div class="seg" role="group">${[['tirz','Tirzepatida'],['geral','Todo o estoque']].map(([k,l])=>`<button aria-pressed="${ST.estAba===k}" onclick="ST.estAba='${k}';rerender()">${l}</button>`).join('')}</div>`; }
+
 function vEstoque(){
+  if (!ST.estAba) ST.estAba = 'tirz';
   if (estErr) return estHead() + `<div class="card empty"><b style="color:var(--ink)">Não foi possível ler o estoque</b><span class="note">${esc(estErr)}</span><button class="chip" onclick="estErr=null;EST=null;rerender()">Tentar de novo</button></div>`;
   if (!EST) return estHead() + `<div class="card empty"><div class="spin" style="border-color:var(--line);border-top-color:var(--gold)"></div><span>Carregando estoque…</span></div>`;
+  return estHead() + estSeg() + (ST.estAba==='tirz' ? vTirz() : vEstGeral());
+}
+
+function vEstGeral(){
   const inv = EST.inventario;
   const zer = inv.filter(i=>estStatus(i)==='zerado'), bai = inv.filter(i=>estStatus(i)==='baixo');
   const repor = [...zer, ...bai.sort((a,b)=>a.atual/(a.min||1)-b.atual/(b.min||1))];
   const cats = [...new Set(inv.map(i=>i.cat))];
   const q = estQ.toLowerCase();
   const lista = inv.filter(i=>(!estCat||i.cat===estCat) && (!q||i.nome.toLowerCase().includes(q)));
-  const t = EST.tirz;
   const linhaRepor = i => `<tr><td>${esc(i.nome)}<br><span class="note">${esc(i.cat)}</span></td><td class="neg">${nf(i.atual)} ${esc(i.und)}</td><td>${nf(i.min)}</td><td><span class="badge ${estStatus(i)==='zerado'?'neg':''}">${estStatus(i)==='zerado'?'Zerado':'Baixo'}</span></td></tr>`;
-  return estHead() + `
+  return `
   <div class="kpis">
     ${kpi('Itens no estoque', nf(inv.length), `${nf(inv.length-zer.length-bai.length)} em dia`, 'hero wide')}
     ${kpi('Abaixo do mínimo', nf(bai.length), '', bai.length?'neg':'pos')}
     ${kpi('Zerados', nf(zer.length), '', zer.length?'neg':'pos')}
-    ${t?kpi('Tirzepatida', nf(t.total)+' amp', `STIN ${nf(t.stin)} · Revalife ${nf(t.reva)}`, 'wide'):''}
   </div>
   ${repor.length?`<div class="card"><div class="card-head"><div><h2>Repor</h2><div class="sub">Zerados e abaixo do mínimo</div></div><span class="badge neg">${repor.length}</span></div>
     <table class="tbl"><thead><tr><th>Produto</th><th>Atual</th><th>Mín.</th><th></th></tr></thead><tbody>${repor.map(linhaRepor).join('')}</tbody></table></div>`
    :`<div class="card empty"><b style="color:var(--pos)">Todo o estoque está adequado</b></div>`}
-  ${t?`<div class="card"><div class="card-head"><div><h2>Tirzepatida</h2><div class="sub">Saldo de ampolas por marca</div></div></div>
-    ${bars([{n:'STIN',k:`${t.stin_e} entradas · ${t.stin_s} saídas`,v:t.stin,c:'var(--c4)'},{n:'Revalife',k:`${t.reva_e} entradas · ${t.reva_s} saídas`,v:t.reva,c:'var(--c2)'}].map(x=>({...x,v:Math.max(0,x.v)})),0).replace(/R\$ /g,'').replace(/<\/b>/g,' amp</b>')}
-    <p class="note" style="margin-top:8px">${nf(t.doses)} doses registradas${t.ult?` · última entrada em ${esc(t.ult)}`:''}.</p></div>`:''}
   <div class="card"><div class="card-head"><div><h2>Todo o estoque</h2></div></div>
     ${cats.length<2?'':`<div class="chips" style="margin-bottom:10px">${[['','Todas'],...cats.map(c=>[c,c.charAt(0)+c.slice(1).toLowerCase()])].map(([v,l])=>`<button class="chip" style="padding:5px 11px;font-size:.74rem" aria-pressed="${estCat===v}" onclick="estCat='${esc(v)}';rerender()">${esc(l)}</button>`).join('')}</div>`}
     <input class="search" placeholder="Buscar produto" value="${esc(estQ)}" oninput="estQ=this.value;clearTimeout(window._t);window._t=setTimeout(()=>{rerender();const i=document.querySelector('.search');i.focus();i.setSelectionRange(i.value.length,i.value.length)},250)">
@@ -785,6 +793,97 @@ function vEstoque(){
   </div>
   <p class="note">Somente leitura — entradas e saídas continuam sendo lançadas no Controle de Estoque.</p>`;
 }
+
+/* ---- Tirzepatida: disponível agora + relatório geral (mesmas regras do Controle de Estoque) ---- */
+function vTirz(){
+  const T = EST.t;
+  if (!T) return `<div class="card empty"><b style="color:var(--ink)">Sem registros de tirzepatida no Controle de Estoque</b></div>`;
+  const usado = (id, apps) => apps.filter(a=>a.ampId===id).reduce((s,a)=>s+(+a.doseUI||0),0);
+
+  // ---------- disponível agora ----------
+  let e={STIN:0,REVALIFE:0,OUTRO:0}, sd={STIN:0,REVALIFE:0,OUTRO:0};
+  T.amp.forEach(r=>{ const m = r.marca==='STIN'||r.marca==='REVALIFE' ? r.marca : 'OUTRO'; (r.tipo==='entrada'?e:sd)[m]+= +r.qty||0; });
+  const saldo = m => e[m]-sd[m];
+  const fechadas = saldo('STIN')+saldo('REVALIFE')+saldo('OUTRO');
+  const ai = T.ampInt.find(a=>a.ativa) || T.ampInt[T.ampInt.length-1];
+  const aiRest = ai ? Math.max(0, AMP_UI - usado(ai.id, T.apInt)) : 0;
+  const pacAtivas = T.ampPac.filter(a=>a.ativa).map(a=>({...a, rest: Math.max(0, AMP_UI - usado(a.id, T.apPac))})).sort((a,b)=>a.rest-b.rest);
+  const empAbertos = T.ev.filter(r=>r.tipo==='emprestimo' && r.status!=='devolvido');
+  const corUI = r => r<=30?'var(--neg)':r<=80?'var(--warn)':'var(--pos)';
+  const barra = (rest) => `<div class="track" style="height:10px"><i style="width:${Math.round(rest/AMP_UI*100)}%;background:${corUI(rest)}"></i></div>`;
+
+  // ---------- relatório (período) ----------
+  const dias = ST.tirzPer;  // 0 = tudo
+  const hoje = new Date(); hoje.setHours(23,59,59,999);
+  const de = dias ? new Date(hoje.getTime() - (dias-1)*864e5) : null; if (de) de.setHours(0,0,0,0);
+  const noPer = d => { const x=dBR(d); return !de || (x && x>=de && x<=hoje); };
+  const ampP = T.amp.filter(r=>noPer(r.data));
+  const ent = ampP.filter(r=>r.tipo==='entrada'), sai = ampP.filter(r=>r.tipo!=='entrada');
+  const totE = ent.reduce((s,r)=>s+(+r.qty||0),0), totS = sai.reduce((s,r)=>s+(+r.qty||0),0);
+  const doses = T.doses.filter(r=>noPer(r.data)).sort((a,b)=>dBR(b.data)-dBR(a.data));
+  const vendas = T.ev.filter(r=>r.tipo==='venda' && noPer(r.dataSaida)), emps = T.ev.filter(r=>r.tipo==='emprestimo' && noPer(r.dataSaida));
+  const totV = vendas.reduce((s,r)=>s+(+r.qty||0),0), totEmp = emps.reduce((s,r)=>s+(+r.qty||0),0);
+  const usoInt = T.ampInt.filter(r=>noPer(r.abertura)).length, compPac = T.ampPac.filter(r=>noPer(r.abertura)).length;
+  // médias de consumo — mesma conta do Controle de Estoque
+  const todasDatas = T.doses.map(r=>dBR(r.data)).filter(Boolean);
+  const ini = de || (todasDatas.length ? new Date(Math.min(...todasDatas)) : new Date());
+  const nDias = Math.max(1, Math.round((hoje - ini)/864e5)+1);
+  const nDoses = T.apInt.filter(r=>noPer(r.data)).length + T.apPac.filter(r=>noPer(r.data)).length;
+  const nAmps = T.ampInt.filter(r=>!r.ativa && noPer(r.abertura)).length + T.ampPac.filter(r=>!r.ativa && noPer(r.abertura)).length;
+  const f1 = (v,d=1) => v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const dSem = nDoses/(nDias/7), dMes = nDoses/(nDias/30.44), aSem = nAmps/(nDias/7), aMes = nAmps/(nDias/30.44);
+  const semanasEstoque = aSem>0 ? fechadas/aSem : null;
+  // doses por mês
+  const porMes = {}; T.doses.forEach(r=>{ const x=dBR(r.data); if(!x) return; const k=x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0'); porMes[k]=(porMes[k]||0)+1; });
+  const mk = Object.keys(porMes).sort().slice(-8);
+  // top pacientes
+  const cnt = {}; doses.forEach(r=>{ const n=semParceira(r.paciente||'—'); cnt[n]=(cnt[n]||0)+1; });
+  const top = Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const ult = [...T.amp].filter(r=>r.tipo==='entrada').sort((a,b)=>dBR(b.data)-dBR(a.data))[0];
+  const perChips = `<div class="chips">${[[30,'30 dias'],[60,'60 dias'],[90,'90 dias'],[0,'Tudo']].map(([v,l])=>`<button class="chip" aria-pressed="${ST.tirzPer===v}" onclick="ST.tirzPer=${v};rerender()">${l}</button>`).join('')}</div>`;
+  const tabela = (cab, linhas, vazio) => linhas.length ? `<div class="scroll"><table class="tbl lista"><thead><tr>${cab.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${linhas.join('')}</tbody></table></div>` : `<p class="note">${vazio}</p>`;
+
+  return `
+  <div class="kpis">
+    ${kpi('Tirzepatida disponível', `${nf(fechadas)} amp`, `fechadas em estoque${semanasEstoque!==null?` · dá para ~${f1(semanasEstoque,0)} semanas no ritmo atual`:''}`, 'hero wide')}
+    ${kpi('STIN', `${nf(saldo('STIN'))} amp`, `${nf(e.STIN)} entradas · ${nf(sd.STIN)} saídas`, saldo('STIN')<=0?'neg':'')}
+    ${kpi('Revalife', `${nf(saldo('REVALIFE'))} amp`, `${nf(e.REVALIFE)} entradas · ${nf(sd.REVALIFE)} saídas`, saldo('REVALIFE')<=0?'neg':'')}
+  </div>
+  ${ai?`<div class="card"><div class="card-head"><div><h2>Ampola de uso interno</h2><div class="sub">${esc(ai.id)} · ${esc(ai.marca)} · aberta em ${esc(ai.abertura)}</div></div><span class="badge ${aiRest<=30?'neg':aiRest<=80?'':'pos'}">${Math.round(aiRest/AMP_UI*100)}%</span></div>
+    <div class="bar"><div class="row"><span>Disponível</span><b>${nf(aiRest)} UI<small>${f1(aiRest/100,2)} ml de 2,40 ml</small></b></div>${barra(aiRest)}</div>
+    ${aiRest<=30?`<p class="note" style="color:var(--neg);margin-top:8px">${aiRest<=0?'Ampola esgotada — é preciso abrir uma nova.':'Quase no fim — separe a próxima ampola.'}</p>`:''}</div>`:''}
+  <div class="card"><div class="card-head"><div><h2>Ampolas de pacientes em uso</h2><div class="sub">Ampolas próprias dos pacientes, guardadas na clínica</div></div><span class="badge">${pacAtivas.length}</span></div>
+    ${pacAtivas.length?`<div class="bars">${pacAtivas.map(a=>`<div class="bar"><div class="row"><span>${esc(semParceira(a.paciente))}<small>${esc(a.marca)}</small></span><b>${nf(a.rest)} UI</b></div>${barra(a.rest)}</div>`).join('')}</div>`:'<p class="note">Nenhuma ampola de paciente em uso.</p>'}</div>
+  ${empAbertos.length?`<div class="card"><div class="card-head"><div><h2>Empréstimos em aberto</h2><div class="sub">Ampolas que saíram e ainda não voltaram</div></div><span class="badge neg">${empAbertos.reduce((s,r)=>s+(+r.qty||0),0)} amp</span></div>
+    ${tabela(['Saída','Para','Marca','Qtd'], empAbertos.map(r=>`<tr><td>${esc(r.dataSaida)}</td><td>${esc(semParceira(r.nome))}</td><td>${esc(r.marca||'')}</td><td>${nf(+r.qty||0)}</td></tr>`), '')}</div>`:''}
+
+  <div style="margin-top:6px"><div class="eyebrow">Relatório de tirzepatida</div></div>
+  ${perChips}
+  <div class="kpis">
+    ${kpi('Doses aplicadas', nf(doses.length), dias?`últimos ${dias} dias`:'todo o período', 'hero wide')}
+    ${kpi('Entradas', `${nf(totE)} amp`, `${nf(ent.length)} pedidos`)}
+    ${kpi('Saídas', `${nf(totS)} amp`, 'do estoque')}
+    ${kpi('Uso interno', `${nf(usoInt)} amp`, 'ampolas da clínica abertas')}
+    ${kpi('Compras de pacientes', `${nf(compPac)} amp`, 'ampolas próprias')}
+    ${kpi('Vendas externas', `${nf(totV)} amp`, `${nf(vendas.length)} vendas`)}
+    ${kpi('Empréstimos', `${nf(totEmp)} amp`, `${nf(emps.length)} registros`)}
+  </div>
+  <div class="card"><div class="card-head"><div><h2>Média de consumo</h2><div class="sub">Período de ${nf(nDias)} dias · ${nf(nDoses)} aplicações e ${nf(nAmps)} ampolas finalizadas (uso interno + pacientes)</div></div></div>
+    <div class="kpis" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      ${kpi('Doses por semana', f1(dSem))}${kpi('Doses por mês', f1(dMes))}
+      ${kpi('Ampolas por semana', f1(aSem,2))}${kpi('Ampolas por mês', f1(aMes))}
+    </div></div>
+  ${mk.length?`<div class="card"><div class="card-head"><div><h2>Doses por mês</h2></div></div>${colChart(mk.map(k=>MES[+k.slice(5)-1]),[{data:mk.map(k=>porMes[k]),color:'var(--c1)'}],{fmt:v=>nf(v),tip:v=>nf(v)+' doses',pl:30})}</div>`:''}
+  ${ult?`<div class="card"><div class="card-head"><div><h2>Última entrada</h2><div class="sub">${esc(ult.data)} · ${nf(+ult.qty||0)} ampola(s) ${esc(ult.marca)}</div></div></div></div>`:''}
+  <div class="card"><div class="card-head"><div><h2>Pacientes com mais doses</h2><div class="sub">${dias?`Últimos ${dias} dias`:'Todo o período'}</div></div></div>
+    ${top.length?`<div class="rank">${top.map(([n,c],i)=>`<div class="it"><div class="ix">${i+1}</div><div class="nm">${esc(n)}</div><div class="vl">${nf(c)}<small>dose${c===1?'':'s'}</small></div></div>`).join('')}</div>`:'<p class="note">Nenhuma dose no período.</p>'}</div>
+  <div class="card"><div class="card-head"><div><h2>Entradas de ampolas</h2></div></div>
+    ${tabela(['Data','Marca','Qtd'], ent.sort((a,b)=>dBR(b.data)-dBR(a.data)).map(r=>`<tr><td>${esc(r.data)}</td><td>${esc(r.marca)}</td><td>${nf(+r.qty||0)}</td></tr>`), 'Nenhuma entrada no período.')}</div>
+  <div class="card"><div class="card-head"><div><h2>Doses aplicadas</h2><div class="sub">Mais recentes primeiro${doses.length>30?' · últimas 30':''}</div></div></div>
+    ${tabela(['Data','Paciente','Dose'], doses.slice(0,30).map(r=>`<tr><td>${esc(r.data)}</td><td>${esc(semParceira(r.paciente))}</td><td>${esc(r.dose||'')}</td></tr>`), 'Nenhuma dose no período.')}</div>
+  <p class="note">Somente leitura, ao vivo do Controle de Estoque. Cada ampola tem 240 UI (2,4 ml · 60 mg).</p>`;
+}
+
 AFTER.estoque = async () => {
   if (EST || estErr) return;
   try {
@@ -796,16 +895,12 @@ AFTER.estoque = async () => {
     if (!snap.exists()) throw new Error('documento de estoque não encontrado');
     const d = snap.data();
     const inv = (d.inventario||[]).filter(i=>i && i.nome).map(i=>({cat:String(i.cat||'OUTROS'), nome:String(i.nome), atual:Number(i.atual)||0, min:Number(i.min)||0, und:String(i.und||'')}));
-    let t=null;
-    if (Array.isArray(d.ampData) && d.ampData.length) {
-      t={stin_e:0,stin_s:0,reva_e:0,reva_s:0};
-      d.ampData.forEach(r=>{ const q=Number(r.qty)||0, e=r.tipo==='entrada';
-        if (r.marca==='STIN') e?t.stin_e+=q:t.stin_s+=q; else if (r.marca==='REVALIFE') e?t.reva_e+=q:t.reva_s+=q; });
-      t.stin=t.stin_e-t.stin_s; t.reva=t.reva_e-t.reva_s; t.total=t.stin+t.reva; t.doses=(d.doseData||[]).length;
-      const br=s=>{const [dd,mm,aa]=String(s).split('/');return new Date(+aa,+mm-1,+dd);};
-      const ent=d.ampData.filter(r=>r.tipo==='entrada').sort((a,b)=>br(b.data)-br(a.data)); t.ult=ent[0]?ent[0].data:'';
-    }
-    EST = {inventario:inv, tirz:t};
+    const arr = x => Array.isArray(x) ? x : [];
+    const t = arr(d.ampData).length || arr(d.doseData).length || arr(d.ampInternas).length ? {
+      amp: arr(d.ampData), doses: arr(d.doseData), ampInt: arr(d.ampInternas), apInt: arr(d.aplicacoesInternas),
+      ampPac: arr(d.ampPacientes), apPac: arr(d.aplicacoesPaciente), ev: arr(d.empVendas)
+    } : null;
+    EST = {inventario:inv, t};
     estHora = 'lido às ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   } catch(e) { estErr = e.message || String(e); }
   if ((location.hash||'').startsWith('#estoque')) rerender();
