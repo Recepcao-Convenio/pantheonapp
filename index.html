@@ -216,13 +216,20 @@ input.search{width:100%;padding:10px 12px;border-radius:10px;border:1px solid va
 
 <script>
 /* ===================== CONFIGURAÇÃO ===================== */
-// Estoque: cole aqui o firebaseConfig do estoque DA PANTHEON e o nome da coleção.
-// Se a mesma base guardar outras unidades, preencha "filtro" para mostrar só a Pantheon.
+// Estoque: lido ao vivo (somente leitura) do sistema "Pantheon — Controle de Estoque".
 const ESTOQUE = {
-  firebaseConfig: null,          // ex.: { apiKey:"...", authDomain:"...", projectId:"...", ... }
-  colecao: "produtos",
-  filtro: null                   // ex.: { campo: "clinica", valor: "Pantheon" }
+  firebaseConfig: {
+    apiKey:"AIzaSyBbfRbzKgQ7fVwnxmRIS0j7gBNM7n1AMt4",
+    authDomain:"estoque-pantheon.firebaseapp.com",
+    projectId:"estoque-pantheon",
+    storageBucket:"estoque-pantheon.firebasestorage.app",
+    messagingSenderId:"255724222579",
+    appId:"1:255724222579:web:4c1d530701a8bd21879206"
+  },
+  documento: ["pantheon","estoque"]
 };
+// KPI: lido ao vivo do site do Painel de Indicadores. Se não carregar, usa a última cópia salva.
+const KPI_URL = "https://faturamento-pantheon.github.io/kpipantheon/";
 const BLOQUEIO_MIN = 5;          // bloqueia depois de X minutos fora do app
 
 /* ===================== Utilidades ===================== */
@@ -316,7 +323,48 @@ document.addEventListener('keydown', e => { if($('#lock').hidden) return; if(/^\
 function lock(){ D=null; pin=''; drawDots(); $('#main').innerHTML=''; $('#app').hidden=true; $('#lock').hidden=false; $('#pinHint').className='hint'; $('#pinHint').textContent='Digite o PIN para entrar'; }
 function unlock(){ $('#lock').hidden=true; $('#app').hidden=false; pin='';
   const a = (D.atualizado||'').split('-'); $('#hdrMeta').innerHTML = a.length===3 ? `Atualizado<br>${a[2]}/${a[1]}/${a[0]}` : '';
-  route(); }
+  D.kpiAoVivo = false; route(); kpiAoVivo(); }
+
+/* --- KPI ao vivo: lê os números direto do site do KPI --- */
+function lerLiteral(src, nome){
+  const m = new RegExp('const\\s+'+nome+'\\s*=\\s*').exec(src); if (!m) return null;
+  let i = m.index + m[0].length, ini = i, prof = 0, str = null;
+  for (; i < src.length; i++) {
+    const c = src[i];
+    if (str) { if (c === '\\') i++; else if (c === str) str = null; continue; }
+    if (c === '"' || c === "'") str = c;
+    else if (c === '[' || c === '{') prof++;
+    else if (c === ']' || c === '}') { prof--; if (prof === 0) break; }
+  }
+  let lit = src.slice(ini, i+1)
+    .replace(/'([^'\\]*)'/g, (_,t)=>JSON.stringify(t))
+    .replace(/([{,]\s*)([A-Za-zÀ-ÿ_][\wÀ-ÿ]*)\s*:/g, '$1"$2":')
+    .replace(/,\s*([}\]])/g, '$1');
+  return JSON.parse(lit);
+}
+async function kpiAoVivo(){
+  try {
+    const r = await fetch(KPI_URL + '?t=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    const h = await r.text();
+    const k = {};
+    for (const n of ['MONTHS','services','atendimentos','valores','faturamento','amhpdf','pacientes']) k[n] = lerLiteral(h, n);
+    const n = k.MONTHS && k.MONTHS.length;
+    const ok = n && k.amhpdf.length===n && k.pacientes.novos.length===n && k.pacientes.noshow.length===n &&
+      ['plano','reembolso','particular'].every(c=>k.faturamento[c].length===n) &&
+      k.services.every(sv=>k.atendimentos[sv] && k.atendimentos[sv].length===n);
+    if (k.valores && !k.services.every(sv=>k.valores[sv] && k.valores[sv].length===n)) k.valores = null;
+    if (!ok) throw new Error('formato inesperado');
+    if (!k.faturamento.cortesia || k.faturamento.cortesia.length!==n) k.faturamento.cortesia = Array(n).fill(0);
+    const cs = /CSAT_URL\s*=\s*"([^"]+)"/.exec(h);
+    k.csatUrl = cs ? cs[1] : D.kpi.csatUrl;
+    if (!D) return;
+    D.kpi = k; D.kpiAoVivo = true;
+    if (ST.kMes >= n) ST.kMes = -1;
+    const v = (location.hash||'#inicio').slice(1);
+    if (v==='' || v==='inicio' || v==='kpi') rerender();
+  } catch(e) { if (D) D.kpiAoVivo = false; console.warn('KPI ao vivo indisponível, usando cópia salva:', e.message); }
+}
 $('#btnLock').onclick = lock;
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) hiddenAt = Date.now();
@@ -479,6 +527,7 @@ function vOp(){
 const K = () => D.kpi;
 const kIdx = () => ST.kMes===-1 ? K().MONTHS.map((_,i)=>i) : [ST.kMes];
 const kSum = a => a.reduce((s,v)=>s+(v||0),0);
+const kMedia = a => { const f=a.filter(v=>v!=null); return f.length ? kSum(f)/f.length : null; };
 const mil = v => (v/1000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
 const kFatTot = i => { const f=K().faturamento; return f.plano[i]+f.reembolso[i]+f.particular[i]; };
 const kAtTot = i => Object.values(K().atendimentos).reduce((s,a)=>s+a[i],0);
@@ -510,7 +559,7 @@ function vKpi(){
 
   if (ST.kSec==='geral') {
     const fat=kSum(I.map(kFatTot)), at=kSum(I.map(kAtTot)), nov=kSum(I.map(i=>k.pacientes.novos[i]));
-    const ns=I.map(i=>k.pacientes.noshow[i]); const noshow=kSum(ns)/ns.length, amh=kSum(I.map(i=>k.amhpdf[i]));
+    const noshow=kMedia(I.map(i=>k.pacientes.noshow[i])), amh=kSum(I.map(i=>k.amhpdf[i]));
     const d=(a,b,inv)=>prev!==null?delta(a,b,inv):'';
     const mix=[['Plano de saúde','plano'],['Reembolso','reembolso'],['Particular','particular']].map(([n,c],j)=>({n,v:kSum(I.map(i=>k.faturamento[c][i])),c:cols[j]}));
     return head+`
@@ -541,7 +590,7 @@ function vKpi(){
   if (ST.kSec==='fat') {
     const orig=[['Plano de saúde','plano'],['Reembolso','reembolso'],['Particular','particular']];
     const fat=kSum(I.map(kFatTot)), cort=kSum(I.map(i=>k.faturamento.cortesia[i]));
-    const sv=k.services.map((s,j)=>({n:s,v:kSum(I.map(i=>k.valores[s][i])),c:cols[j]})).sort((a,b)=>b.v-a.v);
+    const sv=k.valores ? k.services.map((s,j)=>({n:s,v:kSum(I.map(i=>k.valores[s][i])),c:cols[j]})).sort((a,b)=>b.v-a.v) : null;
     return head+`
     <div class="kpis">
       ${kpi('Faturamento', brlK(fat)+(prev!==null?delta(kFatTot(ST.kMes),kFatTot(prev)):''), per, 'hero wide')}
@@ -549,7 +598,7 @@ function vKpi(){
       ${kpi('Cortesias', brlK(cort), 'fora do total')}
     </div>
     <div class="card"><div class="card-head"><div><h2>Evolução por origem</h2></div></div>${serieLinha(ML,orig.map(([n,c],j)=>({name:n,data:k.faturamento[c],color:cols[j]})),{hl,fmt:v=>brlK(v).replace('R$ ',''),tip:brl,pl:44})}</div>
-    <div class="card"><div class="card-head"><div><h2>Por serviço</h2><div class="sub">Valor faturado no período</div></div></div>${bars(sv,kSum(sv.map(x=>x.v)))}</div>
+    ${sv?`<div class="card"><div class="card-head"><div><h2>Por serviço</h2><div class="sub">Valor faturado no período</div></div></div>${bars(sv,kSum(sv.map(x=>x.v)))}</div>`:''}
     <div class="card"><div class="card-head"><div><h2>Detalhamento mensal</h2><div class="sub">Valores em R$ mil</div></div></div><div class="scroll"><table class="tbl"><thead><tr><th>Mês</th><th>Plano</th><th>Reemb.</th><th>Partic.</th><th>Total</th></tr></thead><tbody>
       ${k.MONTHS.map((m,i)=>`<tr><td>${m.slice(0,3)}</td><td>${mil(k.faturamento.plano[i])}</td><td>${mil(k.faturamento.reembolso[i])}</td><td>${mil(k.faturamento.particular[i])}</td><td><b>${mil(kFatTot(i))}</b></td></tr>`).join('')}
       </tbody></table></div></div>`;
@@ -557,7 +606,7 @@ function vKpi(){
   if (ST.kSec==='pac') {
     const p=k.pacientes, nov=kSum(I.map(i=>p.novos[i]));
     const msgI=I.filter(i=>p.mensagem[i]!=null), msg=kSum(msgI.map(i=>p.mensagem[i])), novMsg=kSum(msgI.map(i=>p.novos[i]));
-    const ns=I.map(i=>p.noshow[i]), noshow=kSum(ns)/ns.length;
+    const noshow=kMedia(I.map(i=>p.noshow[i]));
     return head+`
     <div class="kpis">
       ${kpi('Pacientes novos', nf(nov)+(prev!==null?delta(p.novos[ST.kMes],p.novos[prev]):''), per, 'hero wide')}
@@ -682,58 +731,63 @@ function vGlosas(){
 }
 
 /* ===================== ESTOQUE ===================== */
-let EST = null, estErr = null, estQ = '';
+// Lido ao vivo (somente leitura) do documento pantheon/estoque do sistema de estoque.
+let EST = null, estErr = null, estQ = '', estCat = '', estHora = '';
+const estStatus = i => i.atual<=0 ? 'zerado' : i.atual<=i.min ? 'baixo' : 'ok';
+function estHead(){ return `<div><div class="eyebrow">Estoque</div><h1 class="title">Estoque Pantheon<small>AO VIVO DO CONTROLE DE ESTOQUE${estHora?' · '+estHora:''}</small></h1></div>`; }
 function vEstoque(){
-  if (!ESTOQUE.firebaseConfig) return `
-    <div><div class="eyebrow">Estoque</div><h1 class="title">Estoque Pantheon<small>AO VIVO DO SISTEMA DE ESTOQUE</small></h1></div>
-    <div class="card empty"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg>
-      <b style="color:var(--ink)">Conexão com o estoque em configuração</b>
-      <span>Esta aba vai mostrar, em tempo real, os produtos abaixo do mínimo, vencimentos próximos e o valor em estoque, direto do sistema de estoque.</span></div>`;
-  if (estErr) return estHead() + `<div class="card empty"><b style="color:var(--ink)">Não foi possível ler o estoque</b><span class="note">${esc(estErr)}</span></div>`;
+  if (estErr) return estHead() + `<div class="card empty"><b style="color:var(--ink)">Não foi possível ler o estoque</b><span class="note">${esc(estErr)}</span><button class="chip" onclick="estErr=null;EST=null;rerender()">Tentar de novo</button></div>`;
   if (!EST) return estHead() + `<div class="card empty"><div class="spin" style="border-color:var(--line);border-top-color:var(--gold)"></div><span>Carregando estoque…</span></div>`;
+  const inv = EST.inventario;
+  const zer = inv.filter(i=>estStatus(i)==='zerado'), bai = inv.filter(i=>estStatus(i)==='baixo');
+  const repor = [...zer, ...bai.sort((a,b)=>a.atual/(a.min||1)-b.atual/(b.min||1))];
+  const cats = [...new Set(inv.map(i=>i.cat))];
   const q = estQ.toLowerCase();
-  const baixos = EST.filter(p=>p.min!=null && p.qtd<=p.min).sort((a,b)=>a.qtd/(a.min||1)-b.qtd/(b.min||1));
-  const hoje = new Date(); const em60 = new Date(Date.now()+60*864e5);
-  const venc = EST.filter(p=>p.val && p.val<=em60).sort((a,b)=>a.val-b.val);
-  const lista = EST.filter(p=>!q || p.nome.toLowerCase().includes(q) || (p.cat||'').toLowerCase().includes(q)).sort((a,b)=>a.nome.localeCompare(b.nome));
-  const valor = EST.reduce((s,p)=>s+(p.preco?p.preco*p.qtd:0),0);
+  const lista = inv.filter(i=>(!estCat||i.cat===estCat) && (!q||i.nome.toLowerCase().includes(q)));
+  const t = EST.tirz;
+  const linhaRepor = i => `<tr><td>${esc(i.nome)}<br><span class="note">${esc(i.cat)}</span></td><td class="neg">${nf(i.atual)} ${esc(i.und)}</td><td>${nf(i.min)}</td><td><span class="badge ${estStatus(i)==='zerado'?'neg':''}">${estStatus(i)==='zerado'?'Zerado':'Baixo'}</span></td></tr>`;
   return estHead() + `
   <div class="kpis">
-    ${kpi('Produtos', nf(EST.length), '')}
-    ${kpi('Abaixo do mínimo', nf(baixos.length), '', baixos.length?'neg':'pos')}
-    ${kpi('Vencem em 60 dias', nf(venc.length), '', venc.length?'neg':'')}
-    ${valor?kpi('Valor em estoque', brlK(valor), ''):''}
+    ${kpi('Itens no estoque', nf(inv.length), `${nf(inv.length-zer.length-bai.length)} em dia`, 'hero wide')}
+    ${kpi('Abaixo do mínimo', nf(bai.length), '', bai.length?'neg':'pos')}
+    ${kpi('Zerados', nf(zer.length), '', zer.length?'neg':'pos')}
+    ${t?kpi('Tirzepatida', nf(t.total)+' amp', `STIN ${nf(t.stin)} · Revalife ${nf(t.reva)}`, 'wide'):''}
   </div>
-  ${baixos.length?`<div class="card"><div class="card-head"><div><h2>Repor</h2><div class="sub">Quantidade no mínimo ou abaixo</div></div></div>
-    <table class="tbl"><thead><tr><th>Produto</th><th>Atual</th><th>Mín.</th></tr></thead><tbody>${baixos.map(p=>`<tr><td>${esc(p.nome)}</td><td class="neg">${nf(p.qtd)}</td><td>${nf(p.min)}</td></tr>`).join('')}</tbody></table></div>`:''}
-  ${venc.length?`<div class="card"><div class="card-head"><div><h2>Vencimentos próximos</h2></div></div>
-    <table class="tbl"><tbody>${venc.map(p=>`<tr><td>${esc(p.nome)}</td><td class="${p.val<hoje?'neg':''}">${p.val.toLocaleDateString('pt-BR')}</td></tr>`).join('')}</tbody></table></div>`:''}
-  <div class="card"><div class="card-head"><div><h2>Todos os produtos</h2></div></div>
-    <input class="search" placeholder="Buscar produto ou categoria" value="${esc(estQ)}" oninput="estQ=this.value;clearTimeout(window._t);window._t=setTimeout(()=>{rerender();const i=document.querySelector('.search');i.focus();i.setSelectionRange(i.value.length,i.value.length)},250)">
-    <table class="tbl" style="margin-top:8px"><tbody>${lista.map(p=>`<tr><td>${esc(p.nome)}${p.cat?`<br><span class="note">${esc(p.cat)}</span>`:''}</td><td class="${p.min!=null&&p.qtd<=p.min?'neg':''}">${nf(p.qtd)}</td></tr>`).join('')}</tbody></table>
-  </div>`;
+  ${repor.length?`<div class="card"><div class="card-head"><div><h2>Repor</h2><div class="sub">Zerados e abaixo do mínimo</div></div><span class="badge neg">${repor.length}</span></div>
+    <table class="tbl"><thead><tr><th>Produto</th><th>Atual</th><th>Mín.</th><th></th></tr></thead><tbody>${repor.map(linhaRepor).join('')}</tbody></table></div>`
+   :`<div class="card empty"><b style="color:var(--pos)">Todo o estoque está adequado</b></div>`}
+  ${t?`<div class="card"><div class="card-head"><div><h2>Tirzepatida</h2><div class="sub">Saldo de ampolas por marca</div></div></div>
+    ${bars([{n:'STIN',k:`${t.stin_e} entradas · ${t.stin_s} saídas`,v:t.stin,c:'var(--c4)'},{n:'Revalife',k:`${t.reva_e} entradas · ${t.reva_s} saídas`,v:t.reva,c:'var(--c2)'}].map(x=>({...x,v:Math.max(0,x.v)})),0).replace(/R\$ /g,'').replace(/<\/b>/g,' amp</b>')}
+    <p class="note" style="margin-top:8px">${nf(t.doses)} doses registradas${t.ult?` · última entrada em ${esc(t.ult)}`:''}.</p></div>`:''}
+  <div class="card"><div class="card-head"><div><h2>Todo o estoque</h2></div></div>
+    ${cats.length<2?'':`<div class="chips" style="margin-bottom:10px">${[['','Todas'],...cats.map(c=>[c,c.charAt(0)+c.slice(1).toLowerCase()])].map(([v,l])=>`<button class="chip" style="padding:5px 11px;font-size:.74rem" aria-pressed="${estCat===v}" onclick="estCat='${esc(v)}';rerender()">${esc(l)}</button>`).join('')}</div>`}
+    <input class="search" placeholder="Buscar produto" value="${esc(estQ)}" oninput="estQ=this.value;clearTimeout(window._t);window._t=setTimeout(()=>{rerender();const i=document.querySelector('.search');i.focus();i.setSelectionRange(i.value.length,i.value.length)},250)">
+    <table class="tbl" style="margin-top:8px"><tbody>${lista.map(i=>{const s=estStatus(i);return `<tr><td>${esc(i.nome)}<br><span class="note">${esc(i.cat)} · mín. ${nf(i.min)}</span></td><td class="${s==='ok'?'':'neg'}"><b>${nf(i.atual)}</b> ${esc(i.und)}</td></tr>`;}).join('')||'<tr><td class="note">Nenhum produto encontrado.</td></tr>'}</tbody></table>
+  </div>
+  <p class="note">Somente leitura — entradas e saídas continuam sendo lançadas no Controle de Estoque.</p>`;
 }
-function estHead(){ return `<div><div class="eyebrow">Estoque</div><h1 class="title">Estoque Pantheon<small>AO VIVO · ${EST?EST.length+' PRODUTOS':''}</small></h1></div>`; }
 AFTER.estoque = async () => {
-  if (!ESTOQUE.firebaseConfig || EST || estErr) return;
+  if (EST || estErr) return;
   try {
     const V='10.12.2';
-    const {initializeApp} = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
-    const {getFirestore, collection, getDocs} = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
-    const app = initializeApp(ESTOQUE.firebaseConfig, 'pantheon-na-mao');
-    const snap = await getDocs(collection(getFirestore(app), ESTOQUE.colecao));
-    const pick = (o,ks) => { for (const k of ks) if (o[k]!=null && o[k]!=='') return o[k]; return null; };
-    const toNum = v => v==null ? null : typeof v==='number' ? v : parseFloat(String(v).replace(/\./g,'').replace(',','.'));
-    const toDate = v => !v ? null : v.toDate ? v.toDate() : (/^\d{2}\/\d{2}\/\d{4}$/.test(v) ? new Date(v.split('/').reverse().join('-')) : new Date(v));
-    const docs = ESTOQUE.filtro ? snap.docs.filter(d => String(d.data()[ESTOQUE.filtro.campo]??'').toLowerCase() === String(ESTOQUE.filtro.valor).toLowerCase()) : snap.docs;
-    EST = docs.map(d => { const o=d.data();
-      return { nome: String(pick(o,['nome','name','produto','descricao'])||d.id),
-        qtd: toNum(pick(o,['quantidade','qtd','estoque','saldo','qty','quantity']))||0,
-        min: toNum(pick(o,['minimo','min','estoqueMinimo','estoque_minimo','minStock'])),
-        cat: pick(o,['categoria','category','grupo']),
-        preco: toNum(pick(o,['preco','custo','valor','price','cost'])),
-        val: toDate(pick(o,['validade','vencimento','expiry','expiration'])) };
-    });
+    const {initializeApp, getApps} = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+    const {getFirestore, doc, getDoc} = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+    const app = getApps().find(a=>a.name==='pantheon-na-mao') || initializeApp(ESTOQUE.firebaseConfig, 'pantheon-na-mao');
+    const snap = await getDoc(doc(getFirestore(app), ...ESTOQUE.documento));
+    if (!snap.exists()) throw new Error('documento de estoque não encontrado');
+    const d = snap.data();
+    const inv = (d.inventario||[]).filter(i=>i && i.nome).map(i=>({cat:String(i.cat||'OUTROS'), nome:String(i.nome), atual:Number(i.atual)||0, min:Number(i.min)||0, und:String(i.und||'')}));
+    let t=null;
+    if (Array.isArray(d.ampData) && d.ampData.length) {
+      t={stin_e:0,stin_s:0,reva_e:0,reva_s:0};
+      d.ampData.forEach(r=>{ const q=Number(r.qty)||0, e=r.tipo==='entrada';
+        if (r.marca==='STIN') e?t.stin_e+=q:t.stin_s+=q; else if (r.marca==='REVALIFE') e?t.reva_e+=q:t.reva_s+=q; });
+      t.stin=t.stin_e-t.stin_s; t.reva=t.reva_e-t.reva_s; t.total=t.stin+t.reva; t.doses=(d.doseData||[]).length;
+      const br=s=>{const [dd,mm,aa]=String(s).split('/');return new Date(+aa,+mm-1,+dd);};
+      const ent=d.ampData.filter(r=>r.tipo==='entrada').sort((a,b)=>br(b.data)-br(a.data)); t.ult=ent[0]?ent[0].data:'';
+    }
+    EST = {inventario:inv, tirz:t};
+    estHora = 'lido às ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   } catch(e) { estErr = e.message || String(e); }
   if ((location.hash||'').startsWith('#estoque')) rerender();
 };

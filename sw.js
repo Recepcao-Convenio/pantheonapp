@@ -1,6 +1,6 @@
 // Pantheon na Mão — service worker
 // Troque a versão quando publicar mudanças no app para os celulares atualizarem.
-const VERSAO = 'pantheon-v6';
+const VERSAO = 'pantheon-v7';
 const BASE = ['./', 'index.html', 'manifest.webmanifest', 'icons/logo.png',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
