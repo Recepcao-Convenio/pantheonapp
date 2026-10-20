@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pantheon Paciente</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#2B1A44">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pantheon">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: capa roxa no login; depois coluna única (máx. 560px) com barra de navegação fixa embaixo, como app de celular. */
+:root {
+  --roxo: #2B1A44;
+  --roxo-2: #45306A;
+  --bege: #F4EEE4;
+  --superficie: #FFFDF9;
+  --texto: #241B30;
+  --texto-2: #6A5E73;
+  --linha: #E3D9CB;
+  --ouro: #A9823F;
+  --acento: #5B3E8C;
+  --acento-suave: #ECE4F6;
+  --ok: #2F7A4F; --ok-suave: #E1F1E7;
+  --alerta: #9A6A12; --alerta-suave: #F8EDD6;
+  --erro: #A33A3A; --erro-suave: #F7E2E0;
+  --neutro-suave: #ECE7E0;
+  --capa-texto: #F4EEE4;
+  --f-display: "Marcellus", "Cormorant Garamond", Georgia, serif;
+  --f-corpo: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --raio: 14px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --roxo: #1E1330; --roxo-2: #3A2858; --bege: #15101C; --superficie: #211A2B; --texto: #EFE8F5; --texto-2: #ADA2B8;
+  --linha: #352C42; --ouro: #D2AE6C; --acento: #B79BE6; --acento-suave: #2F2442;
+  --ok: #7FCB9C; --ok-suave: #1D3326; --alerta: #E2B866; --alerta-suave: #3A2E16; --erro: #EE958C; --erro-suave: #3D1F1F;
+  --neutro-suave: #2C2536; --capa-texto: #F4EEE4; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --roxo: #1E1330; --roxo-2: #3A2858; --bege: #15101C; --superficie: #211A2B; --texto: #EFE8F5; --texto-2: #ADA2B8;
+  --linha: #352C42; --ouro: #D2AE6C; --acento: #B79BE6; --acento-suave: #2F2442;
+  --ok: #7FCB9C; --ok-suave: #1D3326; --alerta: #E2B866; --alerta-suave: #3A2E16; --erro: #EE958C; --erro-suave: #3D1F1F;
+  --neutro-suave: #2C2536; --capa-texto: #F4EEE4; color-scheme: dark }
+
+* { box-sizing: border-box }
+html, body { height: 100% }
+body { background: var(--bege); color: var(--texto); font-family: var(--f-corpo); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--roxo) }
+button, input, textarea, select { font: inherit; color: inherit }
+button { cursor: pointer }
+:focus-visible { outline: 2px solid var(--ouro); outline-offset: 2px }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 400; margin: 0; text-wrap: balance; letter-spacing: .01em }
+p { margin: 0 }
+.miudo { font-size: 13px; color: var(--texto-2) }
+.rotulo { font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--texto-2); font-weight: 600 }
+
+/* Capa / login */
+.capa { min-height: 100%; background: var(--roxo); color: var(--capa-texto); display: flex; flex-direction: column;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 32px }
+.capa-topo { max-width: 440px; width: 100%; margin: 0 auto; display: grid; gap: 14px; justify-items: center; text-align: center; padding-block: 12px 28px }
+.capa-topo h1 { font-size: 34px; color: var(--capa-texto) }
+.capa-topo p { color: #CFC3DF; max-width: 30ch }
+.marca { width: 56px; height: 56px; color: var(--ouro) }
+.cartao-login { max-width: 440px; width: 100%; margin: 0 auto; background: var(--superficie); color: var(--texto); border-radius: 20px; padding: 22px 20px 24px; display: grid; gap: 16px; box-shadow: 0 20px 50px rgba(10,4,20,.35) }
+.segmento { display: grid; grid-template-columns: 1fr 1fr; background: var(--neutro-suave); border-radius: 12px; padding: 4px; gap: 4px }
+.segmento button { border: 0; background: transparent; padding: 9px 8px; border-radius: 9px; font-weight: 600; color: var(--texto-2) }
+.segmento button[aria-pressed="true"] { background: var(--superficie); color: var(--texto); box-shadow: 0 1px 3px rgba(0,0,0,.12) }
+.capa-rodape { text-align: center; color: #A99BBE; font-size: 12.5px; margin-top: 22px }
+
+/* Formulários */
+form { display: grid; gap: 14px }
+.campo { display: grid; gap: 6px }
+.campo label { font-weight: 600; font-size: 13.5px }
+.campo input, .campo textarea { width: 100%; border: 1.5px solid var(--linha); background: var(--superficie); border-radius: 11px; padding: 12px 13px; font-size: 16px }
+.campo input:focus, .campo textarea:focus { border-color: var(--acento); outline: none }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: var(--texto-2) }
+.check input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--acento); flex: none }
+.erro-msg { background: var(--erro-suave); color: var(--erro); border-radius: 10px; padding: 10px 12px; font-size: 14px }
+.info-msg { background: var(--acento-suave); color: var(--texto); border-radius: 10px; padding: 10px 12px; font-size: 14px }
+
+.btn { border: 0; border-radius: 12px; padding: 13px 18px; font-weight: 700; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none }
+.btn-primario { background: var(--roxo-2); color: #fff }
+.btn-primario:hover { filter: brightness(1.08) }
+.btn-secundario { background: var(--acento-suave); color: var(--acento) }
+.btn-linha { background: transparent; border: 1.5px solid var(--linha); color: var(--texto) }
+.btn-perigo { background: var(--erro); color: #fff }
+.btn-texto { background: none; border: 0; color: var(--acento); font-weight: 600; padding: 6px 0 }
+.btn[disabled] { opacity: .55; cursor: default }
+.btn-bloco { width: 100% }
+
+/* App */
+.topo { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--roxo); color: var(--capa-texto);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px }
+.topo-in { max-width: 560px; margin: 0 auto; display: flex; align-items: center; gap: 10px }
+.topo-in .marca { width: 28px; height: 28px }
+.topo-in strong { font-family: var(--f-display); font-weight: 400; font-size: 19px; letter-spacing: .02em; flex: 1 }
+.topo-in button { background: rgba(255,255,255,.1); border: 0; color: var(--capa-texto); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600 }
+.demo-faixa { background: var(--alerta-suave); color: var(--alerta); font-size: 12.5px; text-align: center; padding: 6px 16px; font-weight: 600 }
+main { max-width: 560px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px calc(96px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 18px }
+.saudacao h1 { font-size: 28px }
+.cartao { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); padding: 16px; display: grid; gap: 12px; min-width: 0 }
+.destaque { background: var(--roxo); color: var(--capa-texto); border: 0; position: relative; overflow: hidden }
+.destaque .rotulo { color: var(--ouro) }
+.destaque .miudo { color: #CFC3DF }
+.destaque h2 { font-size: 24px; color: var(--capa-texto) }
+.destaque .btn-linha { border-color: rgba(255,255,255,.25); color: var(--capa-texto) }
+.data-grande { display: flex; gap: 14px; align-items: center }
+.data-bloco { flex: none; width: 60px; border-radius: 12px; background: rgba(255,255,255,.08); text-align: center; padding: 8px 0 7px; border: 1px solid rgba(169,130,63,.5) }
+.data-bloco b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 26px; line-height: 1.05 }
+.data-bloco span { font-size: 11px; letter-spacing: .1em; text-transform: uppercase }
+.acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.acao { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); padding: 14px; text-align: left; display: grid; gap: 8px; align-content: start; color: var(--texto); text-decoration: none; min-height: 104px }
+.acao svg { width: 24px; height: 24px; color: var(--acento) }
+.acao b { font-size: 14.5px }
+.acao span { font-size: 12.5px; color: var(--texto-2) }
+.acao:hover { border-color: var(--acento) }
+.linha-botoes { display: flex; gap: 8px; flex-wrap: wrap }
+.linha-botoes .btn { flex: 1 1 130px }
+
+/* Etapas de agendamento */
+.etapas { display: flex; gap: 6px }
+.etapas i { flex: 1; height: 4px; border-radius: 4px; background: var(--linha) }
+.etapas i.feita { background: var(--ouro) }
+.cab-etapa { display: grid; gap: 4px }
+.cab-etapa h2 { font-size: 24px }
+.lista-op { display: grid; gap: 8px }
+.op { width: 100%; text-align: left; background: var(--superficie); border: 1.5px solid var(--linha); border-radius: 12px; padding: 13px 14px; display: flex; gap: 12px; align-items: center }
+.op:hover { border-color: var(--acento) }
+.op[aria-pressed="true"] { border-color: var(--acento); background: var(--acento-suave) }
+.op .txt { flex: 1; min-width: 0; display: grid }
+.op .txt b { font-weight: 600 }
+.op .txt span { font-size: 13px; color: var(--texto-2) }
+.op .seta { color: var(--texto-2) }
+.avatar { flex: none; width: 38px; height: 38px; border-radius: 50%; background: var(--acento-suave); color: var(--acento); display: grid; place-items: center; font-weight: 700; font-size: 14px }
+.dias { overflow-x: auto; display: flex; gap: 8px; padding-bottom: 6px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch }
+.dia { flex: none; width: 62px; border: 1.5px solid var(--linha); background: var(--superficie); border-radius: 12px; padding: 8px 0; display: grid; justify-items: center; gap: 1px; scroll-snap-align: start }
+.dia span { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--texto-2) }
+.dia b { font-size: 20px; font-family: var(--f-display); font-weight: 400 }
+.dia[aria-pressed="true"] { background: var(--roxo-2); border-color: var(--roxo-2); color: #fff }
+.dia[aria-pressed="true"] span { color: #E6DCF3 }
+.horarios { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px }
+.hora { border: 1.5px solid var(--linha); background: var(--superficie); border-radius: 10px; padding: 10px 0; font-weight: 600; font-variant-numeric: tabular-nums }
+.hora:hover { border-color: var(--acento) }
+.hora[aria-pressed="true"] { background: var(--roxo-2); color: #fff; border-color: var(--roxo-2) }
+.resumo { display: grid; gap: 10px }
+.resumo div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--linha); padding-bottom: 9px }
+.resumo div:last-child { border-bottom: 0; padding-bottom: 0 }
+.resumo dt { color: var(--texto-2); font-size: 13.5px }
+.resumo dd { margin: 0; font-weight: 600; text-align: right }
+
+/* Agendamentos */
+.abas { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--linha) }
+.abas button { background: none; border: 0; padding: 10px; font-weight: 600; color: var(--texto-2); border-bottom: 2px solid transparent; margin-bottom: -1px }
+.abas button[aria-pressed="true"] { color: var(--texto); border-bottom-color: var(--ouro) }
+.ag { display: grid; gap: 10px }
+.ag-cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px }
+.ag-cab h3 { font-family: var(--f-corpo); font-weight: 700; font-size: 15.5px }
+.ag-quando { font-variant-numeric: tabular-nums; font-weight: 600 }
+.pilula { flex: none; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; letter-spacing: .02em }
+.st-agendado { background: var(--acento-suave); color: var(--acento) }
+.st-confirmado { background: var(--ok-suave); color: var(--ok) }
+.st-realizado { background: var(--neutro-suave); color: var(--texto-2) }
+.st-cancelado { background: var(--erro-suave); color: var(--erro) }
+.st-faltou { background: var(--alerta-suave); color: var(--alerta) }
+.confirmar-caixa { background: var(--erro-suave); border-radius: 12px; padding: 12px; display: grid; gap: 10px }
+.vazio { text-align: center; padding: 28px 16px; display: grid; gap: 12px; justify-items: center; color: var(--texto-2) }
+.vazio svg { width: 40px; height: 40px; color: var(--ouro) }
+
+/* Preparo */
+details.prep { background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); padding: 0 16px }
+details.prep summary { list-style: none; cursor: pointer; padding: 15px 0; display: flex; justify-content: space-between; gap: 10px; font-weight: 700 }
+details.prep summary::-webkit-details-marker { display: none }
+details.prep summary::after { content: "+"; color: var(--ouro); font-size: 20px; line-height: 1 }
+details.prep[open] summary::after { content: "–" }
+details.prep ul { margin: 0 0 16px; padding-left: 20px; display: grid; gap: 6px }
+details.prep p { margin-bottom: 12px; color: var(--texto-2); font-size: 13.5px }
+
+/* NPS */
+.escala { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 4px }
+.escala button { border: 1.5px solid var(--linha); background: var(--superficie); border-radius: 8px; padding: 9px 0; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums }
+.escala button[aria-pressed="true"] { background: var(--roxo-2); border-color: var(--roxo-2); color: #fff }
+.escala-leg { display: flex; justify-content: space-between; font-size: 12px; color: var(--texto-2) }
+@media (max-width: 380px) { .escala { grid-template-columns: repeat(6, minmax(0, 1fr)) } }
+
+/* Navegação inferior */
+.nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--superficie); border-top: 1px solid var(--linha);
+  padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px) }
+.nav-in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr) }
+.nav button { background: none; border: 0; padding: 9px 2px 10px; display: grid; justify-items: center; gap: 3px; font-size: 11.5px; font-weight: 600; color: var(--texto-2) }
+.nav svg { width: 22px; height: 22px }
+.nav button[aria-current="page"] { color: var(--acento) }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 8; background: var(--texto); color: var(--bege); padding: 11px 16px; border-radius: 12px; font-weight: 600; font-size: 14px; max-width: calc(100% - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.25) }
+.carregando { display: grid; place-items: center; padding: 30px; color: var(--texto-2) }
+.whats { display: grid; gap: 4px }
+.whats .num { font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; user-select: all }
+@media (prefers-reduced-motion: no-preference) { .tela { animation: entra .22s ease-out } @keyframes entra { from { opacity: .4; transform: translateY(6px) } } }
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+
+<div id="app"></div>
+
+<script>
+/* =====================================================================
+   CONFIGURAÇÃO — ajuste aqui
+   ===================================================================== */
+const CONFIG = {
+  // Endereço do servidor intermediário (Cloudflare Worker). Vazio = modo demonstração.
+  API_URL: 'https://pantheon-paciente.pantheondf.workers.dev',
+  // WhatsApp da recepção: só dígitos, com 55 + DDD.
+  WHATSAPP: '5561981761485',
+  WHATSAPP_EXIBIR: '(61) 98176-1485',
+  // Antecedência mínima (horas) para cancelar ou remarcar pelo app.
+  ANTECEDENCIA_HORAS: 24,
+  FUSO: 'America/Sao_Paulo'
+};
+
+/* Orientações de preparo por categoria de serviço.
+   A categoria vem do servidor (ver mapearCategoria no worker.js). */
+const PREPAROS = {
+  consulta: {
+    titulo: 'Consultas médicas',
+    texto: 'Vale para consultas de emagrecimento, hipertrofia e longevidade.',
+    itens: [
+      'Chegue 15 minutos antes do horário.',
+      'Traga documento com foto e a carteirinha do convênio, se tiver.',
+      'Traga exames recentes (últimos 6 meses) e a lista dos medicamentos e suplementos que usa.',
+      'Use roupa confortável: a consulta pode incluir medidas e avaliação física.'
+    ]
+  },
+  bioimpedancia: {
+    titulo: 'Bioimpedância',
+    texto: 'O resultado depende da sua hidratação. Seguir o preparo deixa a medida mais precisa.',
+    itens: [
+      'Jejum de 4 horas (água é permitida até 1 hora antes).',
+      'Não faça atividade física intensa nas 12 horas anteriores.',
+      'Evite bebida alcoólica nas 24 horas anteriores.',
+      'Evite café, chá preto, refrigerante e energéticos nas 4 horas anteriores.',
+      'Urine antes do exame e retire brincos, relógio e outros objetos de metal.',
+      'Se usar marcapasso ou estiver grávida, avise a recepção antes do exame.'
+    ]
+  },
+  ultrassom: {
+    titulo: 'Ultrassonografia',
+    texto: 'O preparo muda conforme a região do exame. Na dúvida, fale com a recepção.',
+    itens: [
+      'Abdome total ou superior: jejum de 8 horas.',
+      'Pélvico ou vias urinárias: beba 4 a 6 copos de água 1 hora antes e não urine até o exame.',
+      'Demais regiões (tireoide, mamas, partes moles): sem preparo.',
+      'Traga o pedido médico e exames anteriores da mesma região.'
+    ]
+  },
+  laboratorio: {
+    titulo: 'Exames de sangue',
+    texto: 'Coleta laboratorial.',
+    itens: [
+      'Faça o jejum indicado no pedido médico (geralmente 8 horas). Água é permitida.',
+      'Evite bebida alcoólica nos 3 dias anteriores.',
+      'Não faça atividade física intensa no dia anterior.',
+      'Tome seus medicamentos normalmente, a menos que o médico tenha orientado o contrário.',
+      'Traga o pedido médico.'
+    ]
+  }
+};
+
+/* =====================================================================
+   Utilidades
+   ===================================================================== */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const so = s => String(s || '').replace(/\D/g, '');
+const guardar = {
+  get(k) { try { return localStorage.getItem(k) } catch (e) { return null } },
+  set(k, v) { try { localStorage.setItem(k, v) } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k) } catch (e) {} }
+};
+function cpfValido(v) {
+  const c = so(v);
+  if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+  for (let t = 9; t < 11; t++) {
+    let s = 0;
+    for (let i = 0; i < t; i++) s += +c[i] * (t + 1 - i);
+    if (((s * 10) % 11) % 10 !== +c[t]) return false;
+  }
+  return true;
+}
+function mascaraCPF(v) {
+  const c = so(v).slice(0, 11);
+  let o = c.slice(0, 3);
+  if (c.length > 3) o += '.' + c.slice(3, 6);
+  if (c.length > 6) o += '.' + c.slice(6, 9);
+  if (c.length > 9) o += '-' + c.slice(9);
+  return o;
+}
+const fmt = (iso, op) => new Intl.DateTimeFormat('pt-BR', { timeZone: CONFIG.FUSO, ...op }).format(new Date(iso));
+const fmtHora = iso => fmt(iso, { hour: '2-digit', minute: '2-digit' });
+const fmtDiaLongo = iso => fmt(iso, { weekday: 'long', day: 'numeric', month: 'long' });
+const fmtDiaCurto = iso => fmt(iso, { weekday: 'short', day: '2-digit', month: 'short' }).replace(/\./g, '');
+function diaSP(d = new Date()) {
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: CONFIG.FUSO, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+  return p; // AAAA-MM-DD
+}
+function proximosDias(n) {
+  const out = []; const base = new Date(diaSP() + 'T12:00:00-03:00');
+  for (let i = 0; out.length < n && i < n * 2; i++) {
+    const d = new Date(base.getTime() + i * 864e5);
+    const iso = diaSP(d);
+    const dow = new Date(iso + 'T12:00:00-03:00').getUTCDay();
+    if (dow !== 0) out.push(iso); // sem domingos
+  }
+  return out;
+}
+const horasAte = iso => (new Date(iso) - Date.now()) / 36e5;
+const iniciais = n => String(n || '').replace(/^(Dra?\.?\s+)/i, '').split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+const primeiroNome = n => String(n || '').split(/\s+/)[0] || '';
+const STATUS = { agendado: 'Agendado', confirmado: 'Confirmado', realizado: 'Realizado', cancelado: 'Cancelado', faltou: 'Não compareceu' };
+
+/* Ícones */
+const I = {
+  marca: '<svg class="marca" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 15 24 6l18 9"/><path d="M8 15h32"/><path d="M12 19v18M20 19v18M28 19v18M36 19v18"/><path d="M7 41h34M9 37h30"/></svg>',
+  inicio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+  agendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4M12 12.5v5M9.5 15h5"/></svg>',
+  lista: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4M7.5 13.5h3M7.5 17h6"/></svg>',
+  preparo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4h6v3H9z"/><path d="M15 5.5h2.5A1.5 1.5 0 0 1 19 7v12.5A1.5 1.5 0 0 1 17.5 21h-11A1.5 1.5 0 0 1 5 19.5V7a1.5 1.5 0 0 1 1.5-1.5H9"/><path d="m8.5 13 2.2 2.2L15.5 10.5"/></svg>',
+  whats: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 .8a4 4 0 0 1-1.8-1.8l.8-1-1-2z"/></svg>',
+  estrela: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>',
+  seta: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>',
+  voltar: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>'
+};
+
+/* =====================================================================
+   Comunicação com o servidor (ou simulação no modo demonstração)
+   ===================================================================== */
+const DEMO = !CONFIG.API_URL;
+async function api(metodo, caminho, corpo) {
+  if (DEMO) return Simulacao.tratar(metodo, caminho, corpo, S.token);
+  let r;
+  try {
+    r = await fetch(CONFIG.API_URL.replace(/\/$/, '') + caminho, {
+      method: metodo,
+      headers: { 'Content-Type': 'application/json', ...(S.token ? { Authorization: 'Bearer ' + S.token } : {}) },
+      body: corpo ? JSON.stringify(corpo) : undefined
+    });
+  } catch (e) { throw new Error('Sem conexão com a clínica. Verifique sua internet e tente de novo.') }
+  let dados = {};
+  try { dados = await r.json() } catch (e) {}
+  if (r.status === 401 && S.token) { sair(true); throw new Error('Sua sessão expirou. Entre novamente.') }
+  if (!r.ok) throw new Error(dados.erro || 'Não foi possível concluir. Tente de novo em instantes.');
+  return dados;
+}
+
+/* Simulação: mesmas respostas do servidor real, com dados fictícios. */
+const Simulacao = (() => {
+  const convs = [{ id: '142', nome: 'AFFEGO' }, { id: '100', nome: 'Saúde Caixa' }, { id: '109', nome: 'PF Saúde (Polícia Federal)' }];
+  const prof = (id, nome, esp, valor, comConv = true, extra = {}) => ({ id, nome, especialidade: esp, disponivel: true, aviso: '',
+    modalidades: [{ id: 'presencial', nome: '', convenios: [{ id: '88', nome: 'Particular', valor }, ...(comConv ? convs : [])] }], ...extra });
+  const servicos = [
+    { id: 's1', nome: 'Consulta – Nutrologia', categoria: 'consulta', profissionais: [prof('p1', 'Helena Duarte', 'Nutrologia', 450), prof('p2', 'Rafael Moura', 'Nutrologia', 550)] },
+    { id: 's2', nome: 'Consulta – Endocrinologia', categoria: 'consulta', profissionais: [prof('p3', 'Lívia Campos', 'Endocrinologia', 700, false), prof('p4', 'André Lins', 'Endocrinologia', 450, true, { disponivel: false, aviso: 'Atende a partir de 16 anos' })] },
+    { id: 's3', nome: 'Consulta – Psicologia', categoria: 'consulta', profissionais: [{ id: 'p5', nome: 'Clara Nunes', especialidade: 'Psicologia', disponivel: true, aviso: '',
+      modalidades: [{ id: 'presencial', nome: 'Presencial', convenios: [{ id: '88', nome: 'Particular', valor: 150 }] }, { id: 'telemedicina', nome: 'Telemedicina', convenios: [{ id: '88', nome: 'Particular', valor: 100 }] }] }] }
+  ];
+  const contas = { '52998224725': { senha: 'pantheon123', nascimento: '1990-05-12', nome: 'Mariana Souza' } };
+  const dia = n => diaSP(new Date(Date.now() + n * 864e5));
+  const sv = id => servicos.find(s => s.id === id);
+  const pf = id => { for (const s of servicos) for (const p of s.profissionais) if (p.id === id) return p };
+  let seq = 4;
+  const ags = [
+    { id: 'a1', inicio: dia(3) + 'T09:30:00-03:00', servico: 's1', prof: 'p1', status: 'confirmado' },
+    { id: 'a2', inicio: dia(4) + 'T10:00:00-03:00', servico: 's2', prof: 'p3', status: 'agendado' },
+    { id: 'a3', inicio: dia(-12) + 'T14:00:00-03:00', servico: 's1', prof: 'p2', status: 'realizado', avaliado: false },
+    { id: 'a4', inicio: dia(-40) + 'T08:30:00-03:00', servico: 's2', prof: 'p3', status: 'cancelado' }
+  ];
+  const pubAg = a => ({ id: a.id, inicio: a.inicio, status: a.status, avaliado: !!a.avaliado, servico: { id: a.servico, nome: sv(a.servico).nome, categoria: sv(a.servico).categoria }, profissional: { id: a.prof, nome: pf(a.prof).nome } });
+  // Cada profissional atende em alguns dias da semana
+  const diasDoProf = { p1: [1, 3, 5], p2: [2, 4], p3: [2], p4: [1, 4], p5: [1, 2, 3, 4, 5] };
+  function livres(profId, de, ate) {
+    const out = [];
+    for (let t = new Date(de + 'T12:00:00-03:00').getTime(); diaSP(new Date(t)) <= ate; t += 864e5) {
+      const data = diaSP(new Date(t)), dow = new Date(data + 'T12:00:00-03:00').getUTCDay();
+      if (!(diasDoProf[profId] || []).includes(dow)) continue;
+      for (let h = 8; h < 18; h++) for (const m of [0, 30]) {
+        const hh = String(h).padStart(2, '0') + ':' + (m ? '30' : '00');
+        const inicio = `${data}T${hh}:00-03:00`;
+        const semente = (data + hh + profId).split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+        if (semente % 3 === 0 || new Date(inicio) < Date.now() + 2 * 36e5) continue;
+        if (ags.some(a => a.inicio === inicio && a.prof === profId && a.status !== 'cancelado')) continue;
+        out.push({ inicio, profissional: { id: profId, nome: pf(profId).nome } });
+      }
+    }
+    return out;
+  }
+  const erro = m => { throw new Error(m) };
+  async function tratar(metodo, caminho, corpo = {}, token) {
+    await new Promise(r => setTimeout(r, 280));
+    const [rota, qs] = caminho.split('?');
+    const q = Object.fromEntries(new URLSearchParams(qs || ''));
+    if (rota === '/auth/entrar') {
+      const c = contas[so(corpo.cpf)];
+      if (!c) erro('CPF ainda sem cadastro no app. Use “Primeiro acesso”.');
+      if (c.senha !== corpo.senha) erro('CPF ou senha incorretos.');
+      return { token: 'demo', paciente: { nome: c.nome } };
+    }
+    if (rota === '/auth/primeiro-acesso') {
+      const cpf = so(corpo.cpf);
+      const c = contas[cpf] || (contas[cpf] = { nascimento: corpo.nascimento, nome: 'Paciente Exemplo' });
+      if (c.nascimento !== corpo.nascimento) erro('Os dados não conferem com o cadastro da clínica. Fale com a recepção.');
+      c.senha = corpo.senha;
+      return { token: 'demo', paciente: { nome: c.nome } };
+    }
+    if (!token) erro('Entre novamente.');
+    if (rota === '/servicos') return { servicos };
+    if (rota === '/horarios') return { horarios: livres(q.profissional, q.de || q.data, q.ate || q.data) };
+    if (rota === '/agendamentos' && metodo === 'GET') return { agendamentos: ags.map(pubAg) };
+    const reservar = (servico) => {
+      const l = livres(corpo.profissional, corpo.inicio.slice(0, 10), corpo.inicio.slice(0, 10)).find(h => h.inicio === corpo.inicio);
+      if (!l) erro('Esse horário acabou de ser ocupado. Escolha outro.');
+      const n = { id: 'a' + (++seq), inicio: corpo.inicio, servico, prof: corpo.profissional, status: 'agendado' };
+      ags.push(n); return n;
+    };
+    if (rota === '/agendamentos' && metodo === 'POST') return { agendamento: pubAg(reservar(corpo.servico)) };
+    let m = rota.match(/^\/agendamentos\/([^/]+)\/(cancelar|remarcar|confirmar)$/);
+    if (m) {
+      const a = ags.find(x => x.id === m[1]); if (!a) erro('Agendamento não encontrado.');
+      if (m[2] === 'confirmar') { a.status = 'confirmado'; return { ok: true } }
+      if (horasAte(a.inicio) < CONFIG.ANTECEDENCIA_HORAS) erro(`Alterações só até ${CONFIG.ANTECEDENCIA_HORAS}h antes. Fale com a recepção pelo WhatsApp.`);
+      if (m[2] === 'cancelar') { a.status = 'cancelado'; return { ok: true } }
+      const n = reservar(corpo.servico || a.servico); a.status = 'cancelado';
+      return { agendamento: pubAg(n) };
+    }
+    if (rota === '/nps') { const a = ags.find(x => x.id === corpo.agendamentoId); if (a) a.avaliado = true; return { ok: true } }
+    erro('Rota desconhecida.');
+  }
+  return { tratar };
+})();
+
+/* =====================================================================
+   Estado e telas
+   ===================================================================== */
+const S = {
+  token: guardar.get('pp_token'), nome: guardar.get('pp_nome') || '',
+  tela: 'inicio', loginAba: 'entrar', erro: '', ocupado: false,
+  servicos: null, agendamentos: null, abaLista: 'proximos', cancelando: null,
+  ag: null,   // fluxo de agendamento: {etapa, servico, profissional, data, horario, horarios, remarcar}
+  nps: null, toast: ''
+};
+if (DEMO) { S.token = null } // demonstração sempre começa no login
+const app = document.getElementById('app');
+let toastTimer;
+function toast(t) { S.toast = t; render(); clearTimeout(toastTimer); toastTimer = setTimeout(() => { S.toast = ''; render() }, 3200) }
+
+function sair(silencioso) {
+  S.token = null; S.nome = ''; S.agendamentos = null; S.servicos = null; S.ag = null; S.tela = 'inicio';
+  guardar.del('pp_token'); guardar.del('pp_nome');
+  if (!silencioso) render();
+}
+async function carregarAgendamentos(forcar) {
+  if (S.agendamentos && !forcar) return;
+  const r = await api('GET', '/agendamentos');
+  S.agendamentos = (r.agendamentos || []).sort((a, b) => a.inicio.localeCompare(b.inicio));
+}
+async function carregarServicos() {
+  if (S.servicos) return;
+  const r = await api('GET', '/servicos');
+  S.servicos = r.servicos || [];
+}
+
+function proximos() {
+  return (S.agendamentos || []).filter(a => new Date(a.inicio) > Date.now() - 36e5 && a.status !== 'cancelado' && a.status !== 'realizado' && a.status !== 'faltou');
+}
+function anteriores() {
+  const p = new Set(proximos().map(a => a.id));
+  return (S.agendamentos || []).filter(a => !p.has(a.id)).sort((a, b) => b.inicio.localeCompare(a.inicio));
+}
+const pendenteAvaliar = () => (S.agendamentos || []).filter(a => a.status === 'realizado' && !a.avaliado).sort((a, b) => b.inicio.localeCompare(a.inicio))[0];
+
+/* ---------- Login ---------- */
+function telaLogin() {
+  const pa = S.loginAba !== 'entrar';
+  return `<div class="capa">
+    <div class="capa-topo tela">${I.marca}
+      <h1>Clínica Pantheon</h1>
+      <p>Agende consultas e exames e acompanhe seus horários.</p>
+    </div>
+    <div class="cartao-login">
+      <div class="segmento" role="group" aria-label="Tipo de acesso">
+        <button type="button" data-a="loginAba" data-v="entrar" aria-pressed="${!pa}">Entrar</button>
+        <button type="button" data-a="loginAba" data-v="primeiro" aria-pressed="${pa}">Primeiro acesso</button>
+      </div>
+      ${S.erro ? `<div class="erro-msg" role="alert">${esc(S.erro)}</div>` : ''}
+      ${DEMO ? `<div class="info-msg">Demonstração: CPF <b>529.982.247-25</b>, senha <b>pantheon123</b>.</div>` : ''}
+      ${pa ? `
+      <form id="f-primeiro" novalidate>
+        <p class="miudo">Use os dados do seu cadastro na clínica e crie uma senha. Serve também para trocar uma senha esquecida.</p>
+        <div class="campo"><label for="pa-nome">Nome completo</label><input id="pa-nome" name="nome" autocomplete="name" placeholder="Como está no seu cadastro" required></div>
+        <div class="campo"><label for="pa-cpf">CPF</label><input id="pa-cpf" name="cpf" inputmode="numeric" autocomplete="username" placeholder="000.000.000-00" data-mask="cpf" required></div>
+        <div class="campo"><label for="pa-nasc">Data de nascimento</label><input id="pa-nasc" name="nascimento" type="date" required></div>
+        <div class="campo"><label for="pa-senha">Crie uma senha</label><input id="pa-senha" name="senha" type="password" autocomplete="new-password" minlength="8" placeholder="Mínimo de 8 caracteres" required></div>
+        <div class="campo"><label for="pa-senha2">Repita a senha</label><input id="pa-senha2" name="senha2" type="password" autocomplete="new-password" required></div>
+        <label class="check" for="pa-lgpd"><input id="pa-lgpd" name="lgpd" type="checkbox"> Autorizo a Clínica Pantheon a usar meus dados cadastrais para agendamentos, lembretes e avaliação de atendimento, conforme a LGPD.</label>
+        <button class="btn btn-primario btn-bloco" ${S.ocupado ? 'disabled' : ''}>${S.ocupado ? 'Verificando…' : 'Criar senha e entrar'}</button>
+      </form>` : `
+      <form id="f-entrar" novalidate>
+        <div class="campo"><label for="en-cpf">CPF</label><input id="en-cpf" name="cpf" inputmode="numeric" autocomplete="username" placeholder="000.000.000-00" data-mask="cpf" required></div>
+        <div class="campo"><label for="en-senha">Senha</label><input id="en-senha" name="senha" type="password" autocomplete="current-password" required></div>
+        <button class="btn btn-primario btn-bloco" ${S.ocupado ? 'disabled' : ''}>${S.ocupado ? 'Entrando…' : 'Entrar'}</button>
+        <button type="button" class="btn-texto" data-a="loginAba" data-v="primeiro">Esqueci minha senha</button>
+      </form>`}
+    </div>
+    <p class="capa-rodape">Dúvidas? WhatsApp da recepção: ${esc(CONFIG.WHATSAPP_EXIBIR)}</p>
+  </div>`;
+}
+
+/* ---------- Estrutura do app ---------- */
+function moldura(conteudo) {
+  const nav = [['inicio', 'Início', I.inicio], ['agendar', 'Agendar', I.agendar], ['agenda', 'Agenda', I.lista], ['preparo', 'Preparo', I.preparo]];
+  return `<header class="topo"><div class="topo-in">${I.marca}<strong>Pantheon</strong><button type="button" data-a="sair">Sair</button></div></header>
+  ${DEMO ? '<div class="demo-faixa">Modo demonstração · dados fictícios</div>' : ''}
+  <main class="tela" id="conteudo">${conteudo}</main>
+  <nav class="nav" aria-label="Navegação"><div class="nav-in">${nav.map(([id, t, ic]) => `<button type="button" data-a="ir" data-v="${id}" ${S.tela === id || (id === 'agenda' && S.tela === 'nps') ? 'aria-current="page"' : ''}>${ic}${t}</button>`).join('')}</div></nav>
+  ${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}`;
+}
+const carregando = (t = 'Carregando…') => `<div class="carregando">${t}</div>`;
+const erroCaixa = () => S.erro ? `<div class="erro-msg" role="alert">${esc(S.erro)}</div>` : '';
+function blocoData(iso) { return `<div class="data-bloco"><b>${fmt(iso, { day: '2-digit' })}</b><span>${fmt(iso, { month: 'short' }).replace('.', '')}</span></div>` }
+
+/* ---------- Início ---------- */
+function telaInicio() {
+  if (!S.agendamentos) return carregando();
+  const p = proximos()[0], av = pendenteAvaliar();
+  const h = new Date().toLocaleString('en-US', { timeZone: CONFIG.FUSO, hour: 'numeric', hour12: false });
+  const ola = +h < 12 ? 'Bom dia' : +h < 18 ? 'Boa tarde' : 'Boa noite';
+  return `${erroCaixa()}
+  <section class="saudacao"><p class="rotulo">${esc(fmtDiaLongo(new Date().toISOString()))}</p><h1>${ola}, ${esc(primeiroNome(S.nome))}</h1></section>
+  ${p ? `<section class="cartao destaque" aria-label="Próximo agendamento">
+      <p class="rotulo">Próximo atendimento</p>
+      <div class="data-grande">${blocoData(p.inicio)}<div><h2>${esc(p.servico.nome)}</h2><p class="miudo">${esc(fmtDiaLongo(p.inicio))} às ${fmtHora(p.inicio)} · ${esc(p.profissional.nome)}</p></div></div>
+      <div class="linha-botoes"><button class="btn btn-linha" data-a="ir" data-v="agenda">Ver detalhes</button><button class="btn btn-linha" data-a="verPreparo" data-v="${esc(p.servico.categoria)}">Preparo</button></div>
+    </section>` : `<section class="cartao vazio">${I.agendar}<p>Você não tem atendimentos marcados.</p><button class="btn btn-primario" data-a="ir" data-v="agendar">Agendar agora</button></section>`}
+  ${av ? `<section class="cartao"><p class="rotulo">Sua opinião</p><p>Como foi seu atendimento de <b>${esc(av.servico.nome)}</b> em ${fmt(av.inicio, { day: 'numeric', month: 'long' })}?</p><button class="btn btn-secundario" data-a="avaliar" data-v="${esc(av.id)}">Avaliar em 1 minuto</button></section>` : ''}
+  <section class="acoes" aria-label="Atalhos">
+    <button class="acao" data-a="ir" data-v="agendar">${I.agendar}<b>Agendar</b><span>Consultas e exames</span></button>
+    <button class="acao" data-a="ir" data-v="agenda">${I.lista}<b>Meus agendamentos</b><span>Remarcar ou cancelar</span></button>
+    <button class="acao" data-a="ir" data-v="preparo">${I.preparo}<b>Preparo de exames</b><span>Jejum e orientações</span></button>
+    <a class="acao" href="https://wa.me/${esc(CONFIG.WHATSAPP)}" target="_blank" rel="noopener">${I.whats}<b>WhatsApp</b><span>${esc(CONFIG.WHATSAPP_EXIBIR)}</span></a>
+  </section>`;
+}
+
+/* ---------- Agendar (também usado para remarcar) ---------- */
+const DIAS_BUSCA = 28;
+const moeda = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
+const svAtual = g => S.servicos && S.servicos.find(s => s.id === g.servico);
+const profAtual = g => { const sv = svAtual(g); return sv && sv.profissionais.find(p => p.id === g.profissional) };
+const modAtual = g => { const p = profAtual(g); return p && (p.modalidades.find(m => m.id === g.modalidade) || p.modalidades[0]) };
+const convAtual = g => { const m = modAtual(g); return m && m.convenios.find(c => c.id === g.convenio) };
+// Etapas do fluxo; modalidade e convênio só aparecem quando há mais de uma opção
+function passos(g) {
+  const p = profAtual(g), m = modAtual(g);
+  return ['servico', 'prof', ...(p && p.modalidades.length > 1 ? ['modalidade'] : []), ...(!m || m.convenios.length > 1 ? ['convenio'] : []), 'hora', 'conf'];
+}
+function irPara(etapa) {
+  S.ag.etapa = etapa; S.erro = ''; render(); window.scrollTo(0, 0);
+  if (etapa === 'hora' && !S.ag.livres) buscarDias();
+}
+function limparAgenda(g) { g.livres = null; g.ate = null; g.data = null; g.horario = null }
+async function buscarDias(mais) {
+  const g = S.ag;
+  const de = mais && g.ate ? diaSP(new Date(new Date(g.ate + 'T12:00:00-03:00').getTime() + 864e5)) : diaSP();
+  const ate = diaSP(new Date(new Date(de + 'T12:00:00-03:00').getTime() + (DIAS_BUSCA - 1) * 864e5));
+  g.buscando = true; render();
+  try {
+    const r = await api('GET', `/horarios?servico=${encodeURIComponent(g.servico)}&profissional=${encodeURIComponent(g.profissional)}&modalidade=${encodeURIComponent(g.modalidade || '')}&convenio=${encodeURIComponent(g.convenio || '')}&de=${de}&ate=${ate}`);
+    if (S.ag !== g) return;
+    g.livres = (mais && g.livres ? g.livres : []).concat(r.horarios || []);
+    g.ate = ate;
+    if (!g.data) { const d = g.livres[0]; g.data = d ? d.inicio.slice(0, 10) : null }
+  } catch (e) { S.erro = e.message; if (!g.livres) g.livres = [] }
+  g.buscando = false; render();
+}
+function novoFluxo(remarcar) {
+  S.ag = { etapa: 'servico', servico: null, profissional: null, modalidade: null, convenio: null, livres: null, ate: null, data: null, horario: null, remarcar: remarcar || null };
+  if (remarcar) { S.ag.servico = remarcar.servico.id; S.ag.etapa = 'prof' }
+}
+function telaAgendar() {
+  if (!S.servicos) return carregando();
+  const g = S.ag, sv = svAtual(g), p = profAtual(g), m = modAtual(g), conv = convAtual(g);
+  const ps = passos(g), idx = Math.max(0, ps.indexOf(g.etapa)), total = ps.length;
+  const inicioFluxo = g.remarcar ? 1 : 0;
+  const barra = `<div class="etapas" aria-hidden="true">${ps.map((_, i) => `<i class="${i <= idx ? 'feita' : ''}"></i>`).join('')}</div>`;
+  const voltar = idx > inicioFluxo ? `<button class="btn-texto" data-a="agVoltar">${I.voltar} Voltar</button>` : (g.remarcar ? `<button class="btn-texto" data-a="ir" data-v="agenda">${I.voltar} Cancelar remarcação</button>` : '');
+  const rot = `<p class="rotulo">${g.remarcar ? 'Remarcar' : 'Agendar'} · etapa ${idx + 1} de ${total}</p>`;
+  const resumo = [sv && sv.nome, p && p.nome, m && m.nome, conv && conv.nome].filter(Boolean).map(esc).join(' · ');
+  let corpo = '';
+  if (g.etapa === 'servico') {
+    corpo = `<div class="cab-etapa">${rot}<h2>Qual consulta você quer agendar?</h2></div>
+    <div class="lista-op">${S.servicos.map(s => `<button class="op" data-a="agServico" data-v="${esc(s.id)}"><span class="txt"><b>${esc(s.nome)}</b><span>${s.profissionais.length} profissiona${s.profissionais.length > 1 ? 'is' : 'l'}</span></span><span class="seta">${I.seta}</span></button>`).join('')}</div>`;
+  } else if (g.etapa === 'prof') {
+    corpo = `<div class="cab-etapa">${rot}<h2>Com quem?</h2><p class="miudo">${esc(sv ? sv.nome : '')}</p></div>
+    <div class="lista-op">${(sv ? sv.profissionais : []).map(pp => {
+      const part = pp.modalidades.map(mm => (mm.convenios.find(c => c.valor != null) || {}).valor).filter(v => v != null);
+      const sub = pp.disponivel === false ? esc(pp.aviso) : [esc(pp.especialidade), part.length ? 'Particular a partir de ' + moeda(Math.min(...part)) : ''].filter(Boolean).join(' · ');
+      return `<button class="op" data-a="agProf" data-v="${esc(pp.id)}" ${pp.disponivel === false ? 'disabled aria-disabled="true" style="opacity:.55;cursor:default"' : ''}><span class="avatar">${esc(iniciais(pp.nome))}</span><span class="txt"><b>${esc(pp.nome)}</b><span>${sub}</span></span><span class="seta">${pp.disponivel === false ? '' : I.seta}</span></button>`;
+    }).join('')}</div>`;
+  } else if (g.etapa === 'modalidade') {
+    corpo = `<div class="cab-etapa">${rot}<h2>Como prefere ser atendido?</h2><p class="miudo">${resumo}</p></div>
+    <div class="lista-op">${p.modalidades.map(mm => { const v = (mm.convenios.find(c => c.valor != null) || {}).valor;
+      return `<button class="op" data-a="agMod" data-v="${esc(mm.id)}" aria-pressed="${g.modalidade === mm.id}"><span class="txt"><b>${esc(mm.nome || 'Presencial')}</b><span>${v != null ? moeda(v) : ''}</span></span><span class="seta">${I.seta}</span></button>` }).join('')}</div>`;
+  } else if (g.etapa === 'convenio') {
+    corpo = `<div class="cab-etapa">${rot}<h2>Particular ou convênio?</h2><p class="miudo">${resumo}</p></div>
+    <div class="lista-op">${m.convenios.map(c => `<button class="op" data-a="agConv" data-v="${esc(c.id)}" aria-pressed="${g.convenio === c.id}"><span class="txt"><b>${esc(c.nome)}</b><span>${c.valor != null ? moeda(c.valor) + ' · pagamento na clínica' : /reembolso/i.test(c.nome) ? 'Pagamento na clínica, com reembolso pelo plano' : 'Leve a carteirinha e um documento com foto'}</span></span><span class="seta">${I.seta}</span></button>`).join('')}</div>
+    <p class="miudo">Não encontrou seu convênio? Fale com a recepção pelo WhatsApp: <b>${esc(CONFIG.WHATSAPP_EXIBIR)}</b>.</p>`;
+  } else if (g.etapa === 'hora') {
+    const porDia = {};
+    for (const h of (g.livres || [])) (porDia[h.inicio.slice(0, 10)] ||= []).push(h);
+    const dias = Object.keys(porDia).sort();
+    const horas = g.data ? porDia[g.data] || [] : [];
+    corpo = `<div class="cab-etapa">${rot}<h2>Escolha dia e horário</h2><p class="miudo">${resumo}</p></div>
+    ${!g.livres ? carregando('Buscando os dias com horário livre…')
+      : !dias.length ? `<div class="cartao vazio"><p>${esc(p.nome)} não tem horários livres até ${esc(fmt(g.ate + 'T12:00:00-03:00', { day: 'numeric', month: 'long' }))}.</p>
+          <button class="btn btn-secundario" data-a="agMais" ${g.buscando ? 'disabled' : ''}>${g.buscando ? 'Buscando…' : 'Ver datas seguintes'}</button>
+          <p class="miudo">Ou fale com a recepção: ${esc(CONFIG.WHATSAPP_EXIBIR)}</p></div>`
+      : `<div class="dias" role="group" aria-label="Dias com horário livre">${dias.map(d => `<button class="dia" data-a="agData" data-v="${d}" aria-pressed="${g.data === d}"><span>${fmt(d + 'T12:00:00-03:00', { weekday: 'short' }).replace('.', '')}</span><b>${d.slice(8)}</b><span>${fmt(d + 'T12:00:00-03:00', { month: 'short' }).replace('.', '')}</span></button>`).join('')}
+          <button class="dia" data-a="agMais" ${g.buscando ? 'disabled' : ''} title="Ver datas seguintes"><span>mais</span><b>${g.buscando ? '…' : '+'}</b><span>datas</span></button></div>
+        <p class="miudo">${esc(fmtDiaLongo(g.data + 'T12:00:00-03:00'))} · ${horas.length} horário${horas.length === 1 ? '' : 's'} livre${horas.length === 1 ? '' : 's'}</p>
+        <div class="horarios" role="group" aria-label="Horários">${horas.map(h => `<button class="hora" data-a="agHora" data-v="${esc(h.inicio)}" aria-pressed="${g.horario && g.horario.inicio === h.inicio}">${fmtHora(h.inicio)}</button>`).join('')}</div>`}`;
+  } else {
+    const h = g.horario;
+    corpo = `<div class="cab-etapa">${rot}<h2>Confira e confirme</h2></div>
+    <div class="cartao"><dl class="resumo">
+      <div><dt>Consulta</dt><dd>${esc(sv.nome)}${m && m.nome ? ' · ' + esc(m.nome) : ''}</dd></div>
+      <div><dt>Profissional</dt><dd>${esc(p.nome)}</dd></div>
+      <div><dt>Dia</dt><dd>${esc(fmtDiaLongo(h.inicio))}</dd></div>
+      <div><dt>Horário</dt><dd>${fmtHora(h.inicio)}</dd></div>
+      ${conv ? `<div><dt>Atendimento</dt><dd>${esc(conv.nome)}</dd></div>` : ''}
+      ${conv && conv.valor != null ? `<div><dt>Valor</dt><dd>${moeda(conv.valor)}</dd></div>` : ''}
+      ${g.remarcar ? `<div><dt>Substitui</dt><dd>${esc(fmtDiaCurto(g.remarcar.inicio))}, ${fmtHora(g.remarcar.inicio)}</dd></div>` : ''}
+    </dl></div>
+    ${conv && conv.valor == null && !/reembolso/i.test(conv.nome) ? `<div class="info-msg">Leve a carteirinha do convênio e um documento com foto.</div>` : ''}
+    <button class="btn btn-primario btn-bloco" data-a="agConfirmar" ${S.ocupado ? 'disabled' : ''}>${S.ocupado ? 'Confirmando…' : g.remarcar ? 'Confirmar novo horário' : 'Confirmar agendamento'}</button>`;
+  }
+  return `${barra}${voltar ? `<div>${voltar}</div>` : ''}${erroCaixa()}${corpo}`;
+}
+
+/* ---------- Meus agendamentos ---------- */
+function cartaoAg(a, futuro) {
+  const pode = futuro && horasAte(a.inicio) >= CONFIG.ANTECEDENCIA_HORAS;
+  const confirmando = S.cancelando === a.id;
+  return `<article class="cartao ag">
+    <div class="ag-cab"><div><h3>${esc(a.servico.nome)}</h3><p class="miudo">${esc(a.profissional.nome)}</p></div><span class="pilula st-${esc(a.status)}">${esc(STATUS[a.status] || a.status)}</span></div>
+    <p class="ag-quando">${esc(fmtDiaLongo(a.inicio))} · ${fmtHora(a.inicio)}</p>
+    ${futuro ? (confirmando ? `<div class="confirmar-caixa"><p>Cancelar este agendamento? O horário será liberado para outro paciente.</p>
+        <div class="linha-botoes"><button class="btn btn-linha" data-a="cancelarNao">Manter</button><button class="btn btn-perigo" data-a="cancelarSim" data-v="${esc(a.id)}" ${S.ocupado ? 'disabled' : ''}>${S.ocupado ? 'Cancelando…' : 'Sim, cancelar'}</button></div></div>`
+      : pode ? `${a.status === 'agendado' ? `<button class="btn btn-primario" data-a="confirmarPresenca" data-v="${esc(a.id)}" ${S.ocupado ? 'disabled' : ''}>Confirmar presença</button>` : ''}<div class="linha-botoes"><button class="btn btn-secundario" data-a="remarcar" data-v="${esc(a.id)}">Remarcar</button><button class="btn btn-linha" data-a="cancelarPedir" data-v="${esc(a.id)}">Cancelar</button></div>`
+      : `${a.status === 'agendado' ? `<button class="btn btn-primario" data-a="confirmarPresenca" data-v="${esc(a.id)}" ${S.ocupado ? 'disabled' : ''}>Confirmar presença</button>` : ''}<p class="miudo">Faltam menos de ${CONFIG.ANTECEDENCIA_HORAS}h. Para alterar, fale com a recepção: ${esc(CONFIG.WHATSAPP_EXIBIR)}.</p>`) : ''}
+    ${futuro && PREPAROS[a.servico.categoria] ? `<button class="btn-texto" data-a="verPreparo" data-v="${esc(a.servico.categoria)}">Ver preparo</button>` : ''}
+    ${a.status === 'realizado' && !a.avaliado ? `<button class="btn btn-secundario" data-a="avaliar" data-v="${esc(a.id)}">${I.estrela.replace('<svg', '<svg width="18" height="18"')} Avaliar atendimento</button>` : ''}
+    ${a.status === 'realizado' && a.avaliado ? '<p class="miudo">Obrigado pela avaliação.</p>' : ''}
+  </article>`;
+}
+function telaAgenda() {
+  if (!S.agendamentos) return carregando();
+  const fut = S.abaLista === 'proximos', lista = fut ? proximos() : anteriores();
+  return `<div class="cab-etapa"><h2>Meus agendamentos</h2></div>
+  <div class="abas" role="group"><button data-a="abaLista" data-v="proximos" aria-pressed="${fut}">Próximos (${proximos().length})</button><button data-a="abaLista" data-v="anteriores" aria-pressed="${!fut}">Anteriores</button></div>
+  ${erroCaixa()}
+  ${lista.length ? lista.map(a => cartaoAg(a, fut)).join('') : `<div class="vazio">${I.lista}<p>${fut ? 'Nenhum atendimento marcado.' : 'Nenhum atendimento anterior.'}</p>${fut ? '<button class="btn btn-primario" data-a="ir" data-v="agendar">Agendar</button>' : ''}</div>`}`;
+}
+
+/* ---------- Preparo ---------- */
+function telaPreparo() {
+  return `<div class="cab-etapa"><h2>Preparo de exames</h2><p class="miudo">Siga as orientações para que o resultado saia correto. Se o seu médico passou outra orientação, siga a do médico.</p></div>
+  ${Object.entries(PREPAROS).map(([k, p]) => `<details class="prep" id="prep-${k}" ${S.preparoAberto === k ? 'open' : ''}><summary>${esc(p.titulo)}</summary><p>${esc(p.texto)}</p><ul>${p.itens.map(i => `<li>${esc(i)}</li>`).join('')}</ul></details>`).join('')}
+  <section class="cartao whats"><p class="rotulo">Ficou com dúvida?</p><p>Fale com a recepção pelo WhatsApp</p><p class="num">${esc(CONFIG.WHATSAPP_EXIBIR)}</p>
+  <a class="btn btn-primario" href="https://wa.me/${esc(CONFIG.WHATSAPP)}" target="_blank" rel="noopener">${I.whats.replace('<svg', '<svg width="20" height="20"')} Abrir conversa</a></section>`;
+}
+
+/* ---------- Avaliação (NPS) ---------- */
+function telaNps() {
+  const a = (S.agendamentos || []).find(x => x.id === S.nps.id);
+  if (!a) return carregando();
+  const n = S.nps.nota;
+  return `<div><button class="btn-texto" data-a="ir" data-v="agenda">${I.voltar} Voltar</button></div>
+  <div class="cab-etapa"><p class="rotulo">Avaliação</p><h2>De 0 a 10, quanto você recomendaria a Clínica Pantheon a um amigo ou familiar?</h2>
+  <p class="miudo">${esc(a.servico.nome)} · ${esc(fmtDiaCurto(a.inicio))}</p></div>
+  ${erroCaixa()}
+  <div class="escala" role="group" aria-label="Nota de 0 a 10">${Array.from({ length: 11 }, (_, i) => `<button data-a="npsNota" data-v="${i}" aria-pressed="${n === i}">${i}</button>`).join('')}</div>
+  <div class="escala-leg"><span>Nada provável</span><span>Muito provável</span></div>
+  <div class="campo"><label for="nps-coment">${n == null ? 'Quer comentar algo?' : n >= 9 ? 'O que mais gostou?' : n >= 7 ? 'O que faltou para ser nota 10?' : 'O que podemos melhorar?'} <span class="miudo">(opcional)</span></label>
+  <textarea id="nps-coment" rows="3" maxlength="600">${esc(S.nps.comentario || '')}</textarea></div>
+  <button class="btn btn-primario btn-bloco" data-a="npsEnviar" ${n == null || S.ocupado ? 'disabled' : ''}>${S.ocupado ? 'Enviando…' : 'Enviar avaliação'}</button>`;
+}
+
+/* ---------- Render ---------- */
+function render() {
+  const foco = document.activeElement && document.activeElement.id;
+  const vals = {}; app.querySelectorAll('input[id],textarea[id]').forEach(e => { vals[e.id] = e.type === 'checkbox' ? e.checked : e.value });
+  if (!S.token) app.innerHTML = telaLogin();
+  else {
+    const t = { inicio: telaInicio, agendar: telaAgendar, agenda: telaAgenda, preparo: telaPreparo, nps: telaNps }[S.tela] || telaInicio;
+    app.innerHTML = moldura(t());
+  }
+  Object.entries(vals).forEach(([id, v]) => { const e = document.getElementById(id); if (e) { if (e.type === 'checkbox') e.checked = v; else if (!e.value) e.value = v } });
+  if (foco) { const e = document.getElementById(foco); if (e) e.focus() }
+}
+async function ir(tela, extra) {
+  S.tela = tela; S.erro = ''; S.cancelando = null; Object.assign(S, extra || {});
+  if (tela === 'agendar' && !(extra && extra.ag)) novoFluxo();
+  render(); window.scrollTo(0, 0);
+  try {
+    if (tela === 'inicio' || tela === 'agenda') await carregarAgendamentos();
+    if (tela === 'agendar') await carregarServicos();
+  } catch (e) { S.erro = e.message }
+  render();
+  if (tela === 'preparo' && S.preparoAberto) { const el = document.getElementById('prep-' + S.preparoAberto); if (el) el.scrollIntoView({ block: 'start' }) }
+}
+async function entrou(r) {
+  S.token = r.token; S.nome = (r.paciente && r.paciente.nome) || '';
+  if (!DEMO) { guardar.set('pp_token', S.token); guardar.set('pp_nome', S.nome) }
+  S.erro = ''; S.ocupado = false; ir('inicio');
+}
+
+/* ---------- Eventos ---------- */
+document.addEventListener('input', e => {
+  if (e.target.dataset.mask === 'cpf') { const p = e.target.selectionStart === e.target.value.length; e.target.value = mascaraCPF(e.target.value); if (p) e.target.selectionStart = e.target.selectionEnd = e.target.value.length }
+  if (e.target.id === 'nps-coment' && S.nps) S.nps.comentario = e.target.value;
+});
+document.addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = new FormData(e.target), d = Object.fromEntries(f);
+  S.erro = '';
+  if (!cpfValido(d.cpf)) S.erro = 'Confira o CPF: os números não formam um CPF válido.';
+  else if (e.target.id === 'f-entrar' && !d.senha) S.erro = 'Digite sua senha.';
+  else if (e.target.id === 'f-primeiro') {
+    if (String(d.nome || '').trim().split(/\s+/).length < 2) S.erro = 'Informe seu nome completo, com sobrenome.';
+    else if (!d.nascimento) S.erro = 'Informe sua data de nascimento.';
+    else if ((d.senha || '').length < 8) S.erro = 'A senha precisa ter pelo menos 8 caracteres.';
+    else if (d.senha !== d.senha2) S.erro = 'As duas senhas não são iguais.';
+    else if (!d.lgpd) S.erro = 'Para continuar, marque a autorização de uso dos dados.';
+  }
+  if (S.erro) return render();
+  S.ocupado = true; render();
+  try {
+    const r = e.target.id === 'f-entrar'
+      ? await api('POST', '/auth/entrar', { cpf: so(d.cpf), senha: d.senha })
+      : await api('POST', '/auth/primeiro-acesso', { nome: d.nome.trim(), cpf: so(d.cpf), nascimento: d.nascimento, senha: d.senha });
+    await entrou(r);
+  } catch (err) { S.ocupado = false; S.erro = err.message; render() }
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-a]'); if (!b) return;
+  const a = b.dataset.a, v = b.dataset.v;
+  const g = S.ag;
+  try {
+    switch (a) {
+      case 'loginAba': S.loginAba = v; S.erro = ''; render(); break;
+      case 'sair': sair(); break;
+      case 'ir': ir(v); break;
+      case 'verPreparo': ir('preparo', { preparoAberto: v }); break;
+      case 'abaLista': S.abaLista = v; S.cancelando = null; render(); break;
+      case 'agServico': g.servico = v; g.profissional = null; g.modalidade = null; limparAgenda(g); irPara('prof'); break;
+      case 'agProf': {
+        const pp = svAtual(g).profissionais.find(x => x.id === v); if (!pp || pp.disponivel === false) break;
+        g.profissional = v; g.modalidade = pp.modalidades[0].id; limparAgenda(g);
+        if (pp.modalidades.length > 1) { g.modalidade = null; irPara('modalidade'); break }
+        const cs = modAtual(g).convenios;
+        if (cs.length === 1) { g.convenio = cs[0].id; irPara('hora') }
+        else { if (!cs.some(c => c.id === g.convenio)) g.convenio = cs.some(c => c.id === guardar.get('pp_convenio')) ? guardar.get('pp_convenio') : null; irPara('convenio') }
+        break;
+      }
+      case 'agMod': {
+        g.modalidade = v; limparAgenda(g);
+        const cs = modAtual(g).convenios;
+        if (cs.length === 1) { g.convenio = cs[0].id; irPara('hora') } else irPara('convenio');
+        break;
+      }
+      case 'agConv': g.convenio = v; guardar.set('pp_convenio', v); limparAgenda(g); irPara('hora'); break;
+      case 'agVoltar': { const ps = passos(g); g.horario = null; S.ag.etapa = ps[Math.max(0, ps.indexOf(g.etapa) - 1)]; S.erro = ''; render(); window.scrollTo(0, 0); break }
+      case 'agMais': if (!g.buscando) await buscarDias(true); break;
+      case 'agData': g.data = v; g.horario = null; S.erro = ''; render(); break;
+      case 'agHora': g.horario = (g.livres || []).find(h => h.inicio === v); if (g.horario) irPara('conf'); break;
+      case 'agConfirmar': {
+        S.ocupado = true; S.erro = ''; render();
+        const corpo = { servico: g.servico, profissional: g.profissional, modalidade: g.modalidade || '', convenio: g.convenio || '', inicio: g.horario.inicio };
+        if (g.remarcar) await api('POST', `/agendamentos/${encodeURIComponent(g.remarcar.id)}/remarcar`, corpo);
+        else await api('POST', '/agendamentos', corpo);
+        S.ocupado = false; const quando = `${fmtDiaCurto(g.horario.inicio)}, ${fmtHora(g.horario.inicio)}`;
+        S.ag = null; S.agendamentos = null; S.abaLista = 'proximos';
+        await ir('agenda'); toast((g.remarcar ? 'Remarcado para ' : 'Agendado: ') + quando);
+        break;
+      }
+      case 'remarcar': {
+        const ag = S.agendamentos.find(x => x.id === v);
+        await carregarServicos();
+        if (!S.servicos.some(s => s.id === ag.servico.id)) { S.erro = `Este atendimento só pode ser remarcado pela recepção: ${CONFIG.WHATSAPP_EXIBIR}.`; render(); window.scrollTo(0, 0); break }
+        novoFluxo(ag); ir('agendar', { ag: S.ag });
+        break;
+      }
+      case 'confirmarPresenca': {
+        S.ocupado = true; render();
+        await api('POST', `/agendamentos/${encodeURIComponent(v)}/confirmar`);
+        S.ocupado = false; await carregarAgendamentos(true); render(); toast('Presença confirmada');
+        break;
+      }
+      case 'cancelarPedir': S.cancelando = v; render(); break;
+      case 'cancelarNao': S.cancelando = null; render(); break;
+      case 'cancelarSim': {
+        S.ocupado = true; render();
+        await api('POST', `/agendamentos/${encodeURIComponent(v)}/cancelar`);
+        S.ocupado = false; S.cancelando = null; await carregarAgendamentos(true); render(); toast('Agendamento cancelado');
+        break;
+      }
+      case 'avaliar': S.nps = { id: v, nota: null, comentario: '' }; ir('nps'); break;
+      case 'npsNota': S.nps.nota = +v; render(); break;
+      case 'npsEnviar': {
+        S.ocupado = true; render();
+        await api('POST', '/nps', { agendamentoId: S.nps.id, nota: S.nps.nota, comentario: (S.nps.comentario || '').trim() });
+        S.ocupado = false; const ag = S.agendamentos.find(x => x.id === S.nps.id); if (ag) ag.avaliado = true;
+        S.nps = null; await ir('inicio'); toast('Obrigado! Sua avaliação foi enviada.');
+        break;
+      }
+    }
+  } catch (err) { S.ocupado = false; S.erro = err.message; if (S.ag && S.ag.data && !S.ag.horarios) S.ag.horarios = []; render(); window.scrollTo(0, 0) }
+});
+
+/* Instalação como app (funciona quando publicado no GitHub Pages) */
+try { if ('serviceWorker' in navigator && location.protocol === 'https:' && !/claude/.test(location.hostname)) navigator.serviceWorker.register('sw.js').catch(() => {}) } catch (e) {}
+
+if (S.token) ir('inicio'); else render();
+</script>
+
+</body>
+</html>
