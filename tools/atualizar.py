@@ -115,10 +115,17 @@ def glosas(h):
         if v.get("annual") or v.get("clinic") or k.startswith("l"):  # Lótus fica de fora
             continue
         T, I = v["D"]["tot"], v["D"]["items"]
-        pend = [x for x in I if x[10] == "P"]
+        # item: [guia, convênio, médico, paciente, atendimento, cód., serviço, cobrado, glosado, cód. glosa, situação, ...]
+        pend = [x for x in I if x[10] == "P"]  # P = documentação pendente de envio pelo associado
+        lista = {}
+        for x in pend:
+            g = lista.setdefault(x[0], dict(guia=x[0], conv=x[1], pac=x[3], atend=x[4], itens=0, valor=0.0))
+            g["itens"] += 1
+            g["valor"] = round(g["valor"] + x[8], 2)
         out.append(dict(k=k, label=v["label"], cobrado=round(T["c"], 2), glosado=round(T["g"], 2),
                         repasse=round(T["r"], 2), guias=T["guias"], guiasG=T["guiasG"],
-                        pendGuias=len({x[0] for x in pend}), pendValor=round(sum(x[8] for x in pend), 2)))
+                        pendGuias=len(lista), pendValor=round(sum(x[8] for x in pend), 2),
+                        pendLista=sorted(lista.values(), key=lambda z: -z["valor"])))
     return out
 
 

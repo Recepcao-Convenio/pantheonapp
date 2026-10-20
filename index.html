@@ -735,8 +735,18 @@ function vGlosas(){
   const u=Q.at(-1), p=Q.at(-2);
   const pend = Q.filter(q=>q.pendGuias>0);
   const lab = s => s.replace('ª Quinzena de ','ª ').replace(/(\S{3})\S*$/,'$1');
+  const pG = pend.reduce((s,q)=>s+q.pendGuias,0), pV = pend.reduce((s,q)=>s+q.pendValor,0);
+  // situação P no extrato AMHP = documentação pendente de envio pelo associado
+  const pendCard = pend.length ? `<div class="card" style="border-left:4px solid var(--neg)">
+    <div class="card-head"><div><h2>Pendência de envio de documento</h2><div class="sub">Sim — ${nf(pG)} guia${pG>1?'s':''} com situação P no extrato AMHP, ${brl(pV)} glosado aguardando documentação</div></div><span class="badge neg">Pendente</span></div>
+    ${pend.slice().reverse().map(q=>`<details class="bar" style="margin-top:10px"><summary><div class="row"><span>${esc(q.label)}<span class="chev">▶</span></span><b>${nf(q.pendGuias)} guia${q.pendGuias>1?'s':''}<small>${brl0(q.pendValor)}</small></b></div></summary>
+      ${q.pendLista?`<div class="scroll"><table class="tbl lista" style="margin-top:6px"><thead><tr><th>Guia</th><th>Paciente · convênio</th><th>Valor</th></tr></thead><tbody>${q.pendLista.map(x=>`<tr><td>${esc(x.guia)}</td><td>${esc(x.pac)}<br><span class="note">${esc(x.conv)} · atend. ${esc(x.atend)}${x.itens>1?` · ${x.itens} itens`:''}</span></td><td class="neg">${brl(x.valor)}</td></tr>`).join('')}</tbody></table></div>`:''}
+    </details>`).join('')}
+    <p class="note" style="margin-top:10px">Pela situação P do extrato da AMHPDF. Guias já enviadas continuam aparecendo até a AMHPDF mudar a situação no próximo extrato.</p></div>`
+  : `<div class="card" style="border-left:4px solid var(--pos)"><div class="card-head"><div><h2>Pendência de envio de documento</h2><div class="sub">Não — nenhuma guia com documentação pendente nos extratos</div></div><span class="badge pos">Em dia</span></div></div>`;
   return `
   <div><div class="eyebrow">Glosas AMHP</div><h1 class="title">Pantheon<small>${Q.length} QUINZENAS · ${Q[0].label.toUpperCase()} A ${u.label.toUpperCase()}</small></h1></div>
+  ${pendCard}
   <div class="kpis">
     ${kpi('Última quinzena — glosado', brlK(u.glosado)+(p?delta(u.glosado,p.glosado,true):''), `${pct(u.glosado,u.cobrado)} de ${brlK(u.cobrado)} · ${u.label}`, 'hero wide')}
     ${kpi('Guias com glosa', `${u.guiasG}<span style="font-size:.9rem;color:var(--muted)"> de ${u.guias}</span>`, pct(u.guiasG,u.guias)+' das guias')}
@@ -746,13 +756,10 @@ function vGlosas(){
   <div class="card"><div class="card-head"><div><h2>% glosado por quinzena</h2><div class="sub">Acima de 5% fica em vermelho</div></div></div>
     ${colChart(Q.map(q=>q.k.endsWith('1')?q.k.slice(0,3).replace(/^./,x=>x.toUpperCase()):''), [{data:Q.map(q=>q.glosado/q.cobrado*100), color:v=>v>5?'var(--neg)':'var(--c1)'}], {fmt:t=>t.toFixed(0)+'%', tip:v=>v.toLocaleString('pt-BR',{maximumFractionDigits:1})+'%', pl:28})}
   </div>
-  ${pend.length?`<div class="card"><div class="card-head"><div><h2>Pendente de documentação</h2><div class="sub">Guias com situação P no extrato</div></div><span class="badge neg">${pend.reduce((s,q)=>s+q.pendGuias,0)} guias</span></div>
-    <table class="tbl"><tbody>${pend.slice().reverse().map(q=>`<tr><td>${q.label}</td><td>${q.pendGuias} guia${q.pendGuias>1?'s':''}</td><td class="neg">${brl0(q.pendValor)}</td></tr>`).join('')}</tbody></table>
-    <p class="note" style="margin-top:8px">Conta a situação do extrato; guias já marcadas como “Enviado” no relatório de glosas podem aparecer aqui até a próxima atualização.</p></div>`:''}
   <div class="card"><div class="card-head"><div><h2>Todas as quinzenas</h2></div></div>
-    <div class="scroll"><table class="tbl"><thead><tr><th>Quinzena</th><th>Cobrado</th><th>Glosado</th><th>%</th></tr></thead><tbody>
-    ${Q.slice().reverse().map(q=>`<tr><td>${lab(q.label)}</td><td>${brlK(q.cobrado)}</td><td>${brlK(q.glosado)}</td><td class="${q.glosado/q.cobrado>0.05?'neg':''}">${pct(q.glosado,q.cobrado)}</td></tr>`).join('')}
-    </tbody><tfoot><tr><td>Total</td><td>${brlK(tot.c)}</td><td>${brlK(tot.g)}</td><td>${pct(tot.g,tot.c)}</td></tr></tfoot></table></div>
+    <div class="scroll"><table class="tbl compacta"><thead><tr><th>Quinzena</th><th>Cobrado</th><th>Glosado</th><th>%</th><th>Doc.</th></tr></thead><tbody>
+    ${Q.slice().reverse().map(q=>`<tr><td>${lab(q.label)}</td><td>${brlK(q.cobrado)}</td><td>${brlK(q.glosado)}</td><td class="${q.glosado/q.cobrado>0.05?'neg':''}">${pct(q.glosado,q.cobrado)}</td><td>${q.pendGuias?`<span class="badge neg">${q.pendGuias}</span>`:'<span class="badge pos">ok</span>'}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td>Total</td><td>${brlK(tot.c)}</td><td>${brlK(tot.g)}</td><td>${pct(tot.g,tot.c)}</td><td>${pG?`<span class="badge neg">${pG}</span>`:''}</td></tr></tfoot></table></div>
   </div>`;
 }
 
