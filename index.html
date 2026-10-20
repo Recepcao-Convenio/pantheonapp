@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pantheon na Mão</title>
+<meta name="theme-color" content="#481346">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pantheon">
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#F8F2E8; --surface:#FFFDF9; --soft:#F1E8DA; --line:#E8DDCC;
+  --ink:#26142B; --muted:#6E5F73; --faint:#9A8C9E;
+  --brand:#481346; --brand-2:#5A2158; --on-brand:#FFFFFF; --on-brand-muted:#C9B3CA;
+  --gold:#B8892E; --gold-soft:#F6EBD3;
+  --accent:#5B1D5C; --accent-soft:#F0E4F1;
+  --pos:#2E7A4F; --pos-soft:#E2F1E8; --neg:#B23B36; --neg-soft:#F8E4E1; --warn:#A0761C;
+  --c1:#5B1D5C; --c2:#B8892E; --c3:#2E7A4F; --c4:#2F6FA8; --c5:#B5577A; --c6:#7A6A3A;
+  --f-display:"Cormorant Garamond",Georgia,serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:14px; --tab-h:64px;
+  color-scheme:light;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+body{min-height:100dvh;overscroll-behavior-y:none}
+button{font:inherit;color:inherit}
+h1,h2,h3{margin:0;font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+
+/* ---------- PIN ---------- */
+#lock{position:fixed;inset:0;z-index:50;color:#fff;overflow-y:auto;
+  background:radial-gradient(120% 70% at 50% 0%,#4F1A4C 0%,#3A0F38 50%,#24081F 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:20px;
+  padding:calc(env(safe-area-inset-top) + 40px) 24px calc(env(safe-area-inset-bottom) + 22px)}
+#lock::before{content:"";position:absolute;inset:14px;border:1px solid rgba(201,162,74,.35);border-radius:22px;pointer-events:none}
+#lock .cover{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+#lock img{width:min(260px,66vw);height:auto}
+#lock .orn{display:flex;align-items:center;gap:10px;color:#C9A24A;font-size:.66rem;letter-spacing:.32em;text-transform:uppercase}
+#lock .orn::before,#lock .orn::after{content:"";width:34px;height:1px;background:linear-gradient(90deg,transparent,#C9A24A)}
+#lock .orn::after{transform:scaleX(-1)}
+#lock .greet{font-family:var(--f-display);font-size:2rem;font-weight:600;line-height:1.05}
+#lock .date{font-size:.8rem;color:var(--on-brand-muted)}
+#lock .login{display:flex;flex-direction:column;align-items:center;gap:18px}
+#lock .foot{font-size:.68rem;color:rgba(201,179,202,.7);letter-spacing:.06em;text-align:center}
+@media (max-height:700px){#lock{padding-top:calc(env(safe-area-inset-top) + 26px)}#lock .greet{font-size:1.6rem}.pad{gap:10px 20px!important}.pad button{width:64px!important;height:64px!important}}
+#lock .hint{font-size:.85rem;color:var(--on-brand-muted);text-align:center;min-height:1.3em}
+#lock .hint.err{color:#F4B4A8}
+.dots{display:flex;gap:14px}
+.dots i{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--gold);transition:background .15s}
+.dots i.on{background:var(--gold)}
+.dots.shake{animation:shake .35s}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.pad{display:grid;grid-template-columns:repeat(3,72px);gap:14px 22px}
+.pad button{width:72px;height:72px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:#fff;font-size:1.6rem;font-family:var(--f-display);font-weight:600;cursor:pointer}
+.pad button:active{background:rgba(255,255,255,.2)}
+.pad button.ghost{background:none;font-family:var(--f-body);font-size:.85rem;color:var(--on-brand-muted)}
+.spin{width:22px;height:22px;border:2px solid rgba(255,255,255,.25);border-top-color:var(--gold);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ---------- Shell ---------- */
+header.top{position:sticky;top:0;z-index:20;background:var(--brand);color:var(--on-brand);padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+header.top img{height:30px;width:auto;display:block}
+header.top .meta{font-size:.72rem;color:var(--on-brand-muted);text-align:right;line-height:1.25}
+header.top button{background:none;border:1px solid rgba(255,255,255,.25);border-radius:999px;color:#fff;padding:6px 10px;font-size:.75rem;cursor:pointer;flex:none}
+main{max-width:760px;margin:0 auto;padding:18px 16px calc(var(--tab-h) + env(safe-area-inset-bottom) + 28px)}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(6,1fr);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs a{height:var(--tab-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);text-decoration:none;font-size:.64rem;min-width:0;font-weight:500;letter-spacing:.01em}
+nav.tabs a svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs a[aria-current="page"]{color:var(--accent)}
+nav.tabs a[aria-current="page"] svg{stroke-width:2.1}
+@media (min-width:900px){nav.tabs{left:50%;transform:translateX(-50%);bottom:16px;width:640px;border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 30px rgba(38,20,43,.12)}main{padding-bottom:120px}}
+
+section.view{display:flex;flex-direction:column;gap:18px;animation:fade .2s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.eyebrow{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.title{font-family:var(--f-display);font-size:2.1rem;line-height:1.05;letter-spacing:-.01em;font-weight:600}
+.title small{display:block;font-family:var(--f-body);font-size:.8rem;color:var(--gold);font-weight:600;letter-spacing:.04em;margin-top:6px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.card h2{font-family:var(--f-display);font-size:1.35rem;line-height:1.1}
+.card .sub{font-size:.8rem;color:var(--muted);margin-top:3px}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px 14px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.kpi .l{font-size:.72rem;color:var(--muted);font-weight:500}
+.kpi .v{font-family:var(--f-display);font-size:1.6rem;font-weight:600;line-height:1.15;font-variant-numeric:lining-nums tabular-nums;overflow-wrap:anywhere}
+.kpi .v .delta{font-family:var(--f-body);vertical-align:4px}
+.kpi .s{font-size:.72rem;color:var(--muted)}
+.kpi.neg .v{color:var(--neg)} .kpi.pos .v{color:var(--pos)}
+.kpi.wide{grid-column:1/-1}
+.kpi.hero{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+.kpi.hero .l,.kpi.hero .s{color:var(--on-brand-muted)} .kpi.hero .v{font-size:2.2rem;color:#fff}
+.delta{display:inline-block;font-size:.7rem;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:4px}
+.delta.up{background:var(--pos-soft);color:var(--pos)} .delta.down{background:var(--neg-soft);color:var(--neg)}
+.kpi.hero .delta.up{background:rgba(108,192,143,.2);color:#9FE0B8} .kpi.hero .delta.down{background:rgba(239,140,123,.2);color:#F7B3A6}
+
+/* alerts */
+.alerts{display:flex;flex-direction:column;gap:8px}
+.alert{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--warn);font-size:.86rem;text-decoration:none;color:inherit}
+.alert.neg{border-left-color:var(--neg)} .alert.pos{border-left-color:var(--pos)}
+.alert b{font-weight:600}
+.alert .go{margin-left:auto;color:var(--faint);flex:none}
+
+/* bar list */
+.bars{display:flex;flex-direction:column;gap:12px}
+.bar{display:flex;flex-direction:column;gap:5px}
+.bar .row{display:flex;justify-content:space-between;gap:10px;font-size:.85rem}
+.bar .row span:first-child{min-width:0;overflow-wrap:anywhere}
+.bar .row b{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bar .row small{color:var(--muted);font-weight:400;margin-left:6px}
+.track{height:8px;background:var(--soft);border-radius:4px;overflow:hidden}
+.track i{display:block;height:100%;border-radius:4px;background:var(--c1)}
+details.bar summary{list-style:none;cursor:pointer}
+details.bar summary::-webkit-details-marker{display:none}
+details.bar ul{margin:8px 0 2px;padding:10px 12px;list-style:none;background:var(--bg);border-radius:10px;display:flex;flex-direction:column;gap:5px;font-size:.78rem;color:var(--muted)}
+details.bar li{display:flex;justify-content:space-between;gap:10px}
+details.bar li span:last-child{white-space:nowrap;color:var(--ink);font-variant-numeric:tabular-nums}
+.chev{color:var(--faint);font-size:.7rem;margin-left:4px;display:inline-block;transition:transform .15s}
+details[open] .chev{transform:rotate(90deg)}
+
+/* charts */
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text{fill:var(--muted);font-family:var(--f-body);font-size:10px}
+.chart .grid{stroke:var(--line)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.74rem;color:var(--muted);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+/* chips / segmented */
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin:0 -16px;padding-inline:16px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:.8rem;font-weight:500;cursor:pointer;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+.seg{display:inline-flex;background:var(--soft);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:none;padding:6px 12px;border-radius:8px;font-size:.8rem;font-weight:500;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:.82rem}
+.tbl th,.tbl td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl th{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.tbl td:first-child,.tbl th:first-child{text-align:left;white-space:normal}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .neg{color:var(--neg)} .tbl .pos{color:var(--pos)}
+.tbl.compacta th,.tbl.compacta td{padding:8px 4px}
+.tbl.lista th,.tbl.lista td{text-align:left;white-space:normal;padding:8px 5px}
+.tbl.lista td:first-child,.tbl.lista th:first-child{white-space:nowrap}
+.tbl.lista td:last-child,.tbl.lista th:last-child{text-align:right;white-space:nowrap}
+.tbl tfoot td{font-weight:700;border-top:1px solid var(--line)}
+.scroll{overflow-x:auto}
+
+.rank{display:flex;flex-direction:column}
+.rank .it{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.rank .it:last-child{border-bottom:0}
+.rank .ix{font-family:var(--f-display);font-size:1.25rem;font-weight:600;color:var(--gold);text-align:center}
+.rank .nm{font-size:.86rem;font-weight:500;overflow-wrap:anywhere}
+.rank .nm small{display:block;font-size:.72rem;color:var(--muted);font-weight:400}
+.rank .vl{text-align:right;font-size:.86rem;font-weight:600;font-variant-numeric:tabular-nums}
+.rank .vl small{display:block;font-size:.72rem;color:var(--muted);font-weight:400}
+
+.note{font-size:.74rem;color:var(--muted);line-height:1.5}
+.empty{text-align:center;padding:30px 16px;color:var(--muted);font-size:.9rem;display:flex;flex-direction:column;gap:10px;align-items:center}
+.empty svg{width:40px;height:40px;stroke:var(--gold);fill:none;stroke-width:1.5}
+.badge{display:inline-block;font-size:.66rem;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--gold-soft);color:var(--warn);vertical-align:2px}
+.badge.neg{background:var(--neg-soft);color:var(--neg)} .badge.pos{background:var(--pos-soft);color:var(--pos)}
+input.search{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:.9rem}
+@media (min-width:600px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.kpis .kpi.wide{grid-column:span 2}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- Tela de PIN -->
+<div id="lock">
+  <div class="cover">
+    <img src="icons/logo.png" alt="Pantheon">
+    <div class="orn">Painel da Direção</div>
+    <div class="greet" id="greet">Bem-vindo</div>
+    <div class="date" id="today"></div>
+  </div>
+  <div class="login">
+    <div class="hint" id="pinHint">Digite o PIN para entrar</div>
+    <div class="dots" id="dots"></div>
+    <div class="pad" id="pad"></div>
+  </div>
+  <div class="foot">Clínica Pantheon · acesso restrito</div>
+</div>
+
+<div id="app" hidden>
+  <header class="top">
+    <img src="icons/logo.png" alt="Pantheon">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="meta" id="hdrMeta"></div>
+      <button id="btnLock" aria-label="Bloquear">Bloquear</button>
+    </div>
+  </header>
+  <main id="main"></main>
+  <nav class="tabs" id="tabs" aria-label="Seções">
+    <a href="#inicio" data-v="inicio"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>Início</a>
+    <a href="#financeiro" data-v="financeiro"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg>Financeiro</a>
+    <a href="#operacional" data-v="operacional"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Operacional</a>
+    <a href="#kpi" data-v="kpi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 12l5-3M12 3v2M21 12h-2M5 12H3"/></svg>KPI</a>
+    <a href="#glosas" data-v="glosas"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4M10 12h6M10 16h4"/></svg>Glosas</a>
+    <a href="#estoque" data-v="estoque"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg>Estoque</a>
+  </nav>
+</div>
+
+<script>
+/* ===================== CONFIGURAÇÃO ===================== */
+// Estoque: lido ao vivo (somente leitura) do sistema "Pantheon — Controle de Estoque".
+const ESTOQUE = {
+  firebaseConfig: {
+    apiKey:"AIzaSyBbfRbzKgQ7fVwnxmRIS0j7gBNM7n1AMt4",
+    authDomain:"estoque-pantheon.firebaseapp.com",
+    projectId:"estoque-pantheon",
+    storageBucket:"estoque-pantheon.firebasestorage.app",
+    messagingSenderId:"255724222579",
+    appId:"1:255724222579:web:4c1d530701a8bd21879206"
+  },
+  documento: ["pantheon","estoque"]
+};
+// KPI: lido ao vivo do site do Painel de Indicadores. Se não carregar, usa a última cópia salva.
+const KPI_URL = "https://faturamento-pantheon.github.io/kpipantheon/";
+const BLOQUEIO_MIN = 5;          // bloqueia depois de X minutos fora do app
+
+/* ===================== Utilidades ===================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const brl = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const brl0 = v => (v<0?'−':'') + 'R$ ' + Math.round(Math.abs(v)).toLocaleString('pt-BR');
+const brlK = v => { const a=Math.abs(v), s=v<0?'−':''; return a>=1e6 ? s+'R$ '+(a/1e6).toLocaleString('pt-BR',{maximumFractionDigits:2})+' mi' : a>=1e4 ? s+'R$ '+(a/1e3).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mil' : s+'R$ '+Math.round(a).toLocaleString('pt-BR'); };
+const nf = v => Math.round(v).toLocaleString('pt-BR');
+const pct = (a,b,d=1) => b ? (a/b*100).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})+'%' : '—';
+const MES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const MESF = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const SMALL = new Set(['de','da','do','das','dos','e','em']);
+const nome = s => String(s).toLowerCase().replace(/^\d[\d.]*\s+/, '').replace(/\s\d{11}$/, '')
+  .split(/\s+/).map((w,i) => i>0 && SMALL.has(w) ? w : ['ltda','me','sa','s.a.','rb','dc','ar','cef','ejaf'].includes(w) ? w.toUpperCase() : w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const delta = (a,b,inv) => { if(!b) return ''; const d=(a-b)/Math.abs(b)*100; const up=d>=0; const good = inv ? !up : up;
+  return `<span class="delta ${good?'up':'down'}">${up?'▲':'▼'} ${Math.abs(d).toLocaleString('pt-BR',{maximumFractionDigits:1})}%</span>`; };
+const kpi = (l,v,s='',cls='') => `<div class="kpi ${cls}"><div class="l">${l}</div><div class="v num">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
+const bars = (items, total, color) => { const mx = Math.max(...items.map(i=>i.v), 1);
+  return `<div class="bars">${items.map((it,ix)=>{
+    const head = `<div class="row"><span>${esc(it.n)}${it.k?`<small>${esc(it.k)}</small>`:''}${it.det?'<span class="chev">▶</span>':''}</span><b>${brl0(it.v)}${total?`<small>${pct(it.v,total)}</small>`:''}</b></div>
+      <div class="track"><i style="width:${(it.v/mx*100).toFixed(1)}%;background:${it.c||color||'var(--c1)'}"></i></div>`;
+    return it.det ? `<details class="bar"><summary>${head}</summary><ul>${it.det.map(d=>`<li><span>${esc(d[0])}</span><span>${brl(d[1])}</span></li>`).join('')}</ul></details>` : `<div class="bar">${head}</div>`;
+  }).join('')}</div>`; };
+
+/* --- gráfico de colunas (uma ou mais séries) --- */
+function colChart(labels, series, opts={}) {
+  const W=340, H=opts.h||170, pl=opts.pl??38, pr=6, pt=10, pb=22;
+  const all = series.flatMap(s=>s.data);
+  const mx = Math.max(...all, 0) || 1, mn = Math.min(0, ...all);
+  const nice = v => { const p=Math.pow(10,Math.floor(Math.log10(Math.abs(v)||1))); return Math.ceil(v/p)*p; };
+  const top = nice(mx), bot = mn<0 ? -nice(-mn) : 0;
+  const y = v => pt + (top - v)/(top-bot)*(H-pt-pb);
+  const gw = (W-pl-pr)/labels.length, ns = series.length, bw = Math.min(26, gw*0.72/ns);
+  let g = '';
+  [bot, (top+bot)/2, top].forEach(t => { g += `<line class="grid" x1="${pl}" x2="${W-pr}" y1="${y(t)}" y2="${y(t)}"/><text x="${pl-4}" y="${y(t)+3}" text-anchor="end">${opts.fmt?opts.fmt(t):brlK(t).replace('R$ ','')}</text>`; });
+  labels.forEach((lb,i) => {
+    const cx = pl + gw*i + gw/2;
+    series.forEach((s,j) => { const v=s.data[i]; if(v==null) return;
+      const x = cx - (ns*bw)/2 + j*bw, y0=y(Math.max(v,0)), y1=y(Math.min(v,0));
+      const hl = opts.hl===i;
+      g += `<rect x="${x+0.5}" y="${y0}" width="${bw-1}" height="${Math.max(1,y1-y0)}" rx="2" fill="${typeof s.color==='function'?s.color(v,i):s.color}" opacity="${opts.hl==null||hl?1:.45}"><title>${lb}: ${s.name?s.name+' ':''}${opts.tip?opts.tip(v):brl(v)}</title></rect>`; });
+    if (lb) g += `<text x="${cx}" y="${H-6}" text-anchor="middle" ${opts.hl===i?'style="fill:var(--ink);font-weight:600"':''}>${lb}</text>`;
+  });
+  const leg = series.length>1 ? `<div class="legend">${series.map(s=>`<span><i style="background:${s.color}"></i>${s.name}</span>`).join('')}</div>` : '';
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${g}</svg>${leg}`;
+}
+/* --- gráfico de linha --- */
+function lineChart(pts, opts={}) {
+  const W=340,H=160,pl=40,pr=8,pt=10,pb=22;
+  const vs=pts.map(p=>p[1]); const mx=Math.max(...vs,0), mn=Math.min(...vs,0);
+  const x=i=>pl+i/(pts.length-1)*(W-pl-pr), y=v=>pt+(mx-v)/((mx-mn)||1)*(H-pt-pb);
+  let g=''; [mn,0,mx].filter((v,i,a)=>a.indexOf(v)===i).forEach(t=>{g+=`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${y(t)}" y2="${y(t)}" ${t===0?'style="stroke:var(--muted);stroke-dasharray:3 3"':''}/><text x="${pl-4}" y="${y(t)+3}" text-anchor="end">${brlK(t).replace('R$ ','')}</text>`;});
+  const d=pts.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p[1]).toFixed(1)}`).join('');
+  g+=`<path d="${d}" fill="none" stroke="var(--c1)" stroke-width="2" stroke-linejoin="round"/>`;
+  pts.forEach((p,i)=>{ if(i%5===0||i===pts.length-1) g+=`<text x="${x(i)}" y="${H-6}" text-anchor="middle">${p[0]}</text>`;
+    g+=`<circle cx="${x(i)}" cy="${y(p[1])}" r="${p[1]<0?3:2}" fill="${p[1]<0?'var(--neg)':'var(--c1)'}"><title>Dia ${p[0]}: ${brl(p[1])}</title></circle>`; });
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+}
+
+/* ===================== PIN + descriptografia ===================== */
+let ENC = null, PINLEN = 6, pin = '', D = null, busy = false, hiddenAt = 0;
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function decrypt(p) {
+  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(p), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt:b64(ENC.salt), iterations:ENC.iter, hash:'SHA-256'}, km, {name:'AES-GCM', length:256}, false, ['decrypt']);
+  const buf = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64(ENC.iv)}, key, b64(ENC.ct));
+  return JSON.parse(new TextDecoder().decode(buf));
+}
+function drawDots(){ $('#dots').innerHTML = Array.from({length:PINLEN},(_,i)=>`<i class="${i<pin.length?'on':''}"></i>`).join(''); }
+function drawPad(){
+  const keys=['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  $('#pad').innerHTML = keys.map(k => k==='' ? '<span></span>' : `<button data-k="${k}" class="${k==='⌫'?'ghost':''}" aria-label="${k==='⌫'?'Apagar':k}">${k==='⌫'?'Apagar':k}</button>`).join('');
+}
+async function press(k){
+  if (busy || !ENC) return;
+  if (k==='⌫') { pin = pin.slice(0,-1); drawDots(); return; }
+  if (pin.length >= PINLEN) return;
+  pin += k; drawDots();
+  if (pin.length === PINLEN) {
+    busy = true; $('#pinHint').className='hint'; $('#pinHint').innerHTML='<div class="spin" style="margin:0 auto"></div>';
+    try { D = await decrypt(pin); unlock(); }
+    catch(e){ $('#dots').classList.add('shake'); setTimeout(()=>$('#dots').classList.remove('shake'),400);
+      $('#pinHint').className='hint err'; $('#pinHint').textContent='PIN incorreto'; pin=''; drawDots(); }
+    busy = false;
+  }
+}
+$('#pad').addEventListener('click', e => { const b=e.target.closest('button'); if(b) press(b.dataset.k); });
+document.addEventListener('keydown', e => { if($('#lock').hidden) return; if(/^\d$/.test(e.key)) press(e.key); else if(e.key==='Backspace') press('⌫'); });
+function lock(){ D=null; pin=''; drawDots(); $('#main').innerHTML=''; $('#app').hidden=true; $('#lock').hidden=false; $('#pinHint').className='hint'; $('#pinHint').textContent='Digite o PIN para entrar'; }
+function unlock(){ $('#lock').hidden=true; $('#app').hidden=false; pin='';
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(D.atualizado||'');
+  $('#hdrMeta').innerHTML = m ? `Atualizado<br>${m[3]}/${m[2]}${m[4]?' às '+m[4]+'h'+m[5]:'/'+m[1]}` : '';
+  D.kpiAoVivo = false; route(); kpiAoVivo(); }
+
+/* --- KPI ao vivo: lê os números direto do site do KPI --- */
+function lerLiteral(src, nome){
+  const m = new RegExp('const\\s+'+nome+'\\s*=\\s*').exec(src); if (!m) return null;
+  let i = m.index + m[0].length, ini = i, prof = 0, str = null;
+  for (; i < src.length; i++) {
+    const c = src[i];
+    if (str) { if (c === '\\') i++; else if (c === str) str = null; continue; }
+    if (c === '"' || c === "'") str = c;
+    else if (c === '[' || c === '{') prof++;
+    else if (c === ']' || c === '}') { prof--; if (prof === 0) break; }
+  }
+  let lit = src.slice(ini, i+1)
+    .replace(/'([^'\\]*)'/g, (_,t)=>JSON.stringify(t))
+    .replace(/([{,]\s*)([A-Za-zÀ-ÿ_][\wÀ-ÿ]*)\s*:/g, '$1"$2":')
+    .replace(/,\s*([}\]])/g, '$1');
+  return JSON.parse(lit);
+}
+async function kpiAoVivo(){
+  try {
+    const r = await fetch(KPI_URL + '?t=' + Date.now(), {cache:'no-store'});
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    const h = await r.text();
+    const k = {};
+    for (const n of ['MONTHS','services','atendimentos','valores','faturamento','amhpdf','pacientes']) k[n] = lerLiteral(h, n);
+    const n = k.MONTHS && k.MONTHS.length;
+    const ok = n && k.amhpdf.length===n && k.pacientes.novos.length===n && k.pacientes.noshow.length===n &&
+      ['plano','reembolso','particular'].every(c=>k.faturamento[c].length===n) &&
+      k.services.every(sv=>k.atendimentos[sv] && k.atendimentos[sv].length===n);
+    if (k.valores && !k.services.every(sv=>k.valores[sv] && k.valores[sv].length===n)) k.valores = null;
+    if (!ok) throw new Error('formato inesperado');
+    if (!k.faturamento.cortesia || k.faturamento.cortesia.length!==n) k.faturamento.cortesia = Array(n).fill(0);
+    const cs = /CSAT_URL\s*=\s*"([^"]+)"/.exec(h);
+    k.csatUrl = cs ? cs[1] : D.kpi.csatUrl;
+    if (!D) return;
+    D.kpi = k; D.kpiAoVivo = true;
+    if (ST.kMes >= n) ST.kMes = -1;
+    const v = (location.hash||'#inicio').slice(1);
+    if (v==='' || v==='inicio' || v==='kpi') rerender();
+  } catch(e) { if (D) D.kpiAoVivo = false; console.warn('KPI ao vivo indisponível, usando cópia salva:', e.message); }
+}
+$('#btnLock').onclick = lock;
+document.addEventListener('visibilitychange', async () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (D && hiddenAt && Date.now()-hiddenAt > BLOQUEIO_MIN*60e3) { lock(); }
+  // ao voltar para o app, confere se há dados novos publicados
+  const novo = await carregarDados();
+  if (novo && ENC && novo.ct !== ENC.ct) {
+    ENC = novo; PINLEN = ENC.n || PINLEN;
+    if (D) { lock(); $('#pinHint').textContent = 'Dados atualizados — digite o PIN'; }
+  } else if (novo && !ENC) { ENC = novo; PINLEN = ENC.n || PINLEN; drawDots(); }
+});
+// busca sempre a versão mais nova (o endereço único evita cópias antigas no caminho)
+async function carregarDados(){
+  try { const r = await fetch('data.enc.json?v=' + Date.now(), {cache:'no-store'}); if (!r.ok) throw 0; return await r.json(); }
+  catch(e) { try { const r = await fetch('data.enc.json'); return await r.json(); } catch(e2) { return null; } }
+}
+async function boot(){
+  const h=new Date().getHours(); $('#greet').textContent = h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
+  const hj = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}); $('#today').textContent = hj.charAt(0).toUpperCase()+hj.slice(1);
+  drawPad(); drawDots();
+  try {
+    ENC = await carregarDados(); if (!ENC) throw new Error('sem dados');
+    PINLEN = ENC.n || 6; drawDots();
+  } catch(e) { $('#pinHint').className='hint err'; $('#pinHint').textContent='Não consegui carregar os dados. Verifique a internet.'; }
+}
+
+/* ===================== Rotas ===================== */
+const VIEWS = { inicio:vInicio, financeiro:vFin, operacional:vOp, kpi:vKpi, glosas:vGlosas, estoque:vEstoque };
+const ST = { opMes: null, opTipo: -1, finIdx: null, kSec: 'geral', kMes: -1, satMes: 'all', estAba: 'tirz', tirzPer: 0 };
+function route(){
+  if (!D) return;
+  const v = (location.hash||'#inicio').slice(1).split('/')[0];
+  const fn = VIEWS[v] || vInicio;
+  document.querySelectorAll('#tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.v===(VIEWS[v]?v:'inicio') ? 'page':'false'));
+  $('#main').innerHTML = `<section class="view">${fn()}</section>`;
+  window.scrollTo(0,0);
+  (AFTER[v]||(()=>{}))();
+}
+const AFTER = {};
+addEventListener('hashchange', route);
+function rerender(){ const y=scrollY; route(); scrollTo(0,y); }
+
+/* ===================== Helpers de dados ===================== */
+const OP = () => D.operacional;
+const lastM = () => OP().months.length-1;
+const glQ = () => D.glosas;
+function medAgg(m0,m1){ // agrega médicos no intervalo de meses
+  return OP().medicos.map(md => { let v=0,p=0,d=0; for(let m=m0;m<=m1;m++){ const x=md.m[m]; if(x){v+=x[0];p+=x[1];d+=x[2];} }
+    return {nome:md.nome, rad:md.rad, v, p, d}; }).filter(x=>x.v>0);
+}
+
+/* ===================== INÍCIO ===================== */
+function vInicio(){
+  const o=OP(), L=lastM(), m=o.months[L], mp=o.months[L-1], f=D.financeiro.at(-1);
+  const gP=glQ();
+  const sum=(a,k)=>a.reduce((s,x)=>s+x[k],0);
+  // último mês com as duas quinzenas lançadas (não mistura meses)
+  const porMesG = {}; gP.forEach(g=>{ (porMesG[g.k.slice(0,3)] = porMesG[g.k.slice(0,3)] || []).push(g); });
+  const mesesG = Object.keys(porMesG); const mesCompleto = [...mesesG].reverse().find(m=>porMesG[m].length>=2) || mesesG.at(-1);
+  const gMes = porMesG[mesCompleto] || [];
+  const nomeMesG = (gMes[0]?.label||'').replace(/^.*Quinzena de /,'').toLowerCase();
+  const glV=sum(gMes,'glosado'), glC=sum(gMes,'cobrado');
+  const pend=gP.filter(g=>g.pendGuias>0);
+  const pendN=pend.reduce((s,g)=>s+g.pendGuias,0), pendV=pend.reduce((s,g)=>s+g.pendValor,0);
+  const top = medAgg(L,L).filter(x=>!x.rad).sort((a,b)=>b.v-a.v).slice(0,3);
+
+  const alerts=[];
+  if (f.resultado<0) alerts.push(['neg',`Resultado operacional de ${f.mes.split('/')[0].toLowerCase()} ficou em <b>${brl0(f.resultado)}</b> (saídas maiores que entradas).`,'#financeiro']);
+  const fAnt = D.financeiro.at(-2);
+  if (fAnt && f.ent_total && fAnt.ent_total && margem(f) < margem(fAnt) - 0.005) alerts.push(['',`Margem operacional caiu para <b>${pctN(margem(f))}</b> em ${f.mes.split('/')[0].toLowerCase()} (era ${pctN(margem(fAnt))} em ${finLabel(fAnt)}).`,'#financeiro']);
+  const ult=gP.at(-1); if (ult && ult.glosado/ult.cobrado>0.05) alerts.push(['',`Glosa da ${ult.label.toLowerCase()} chegou a <b>${pct(ult.glosado,ult.cobrado)}</b> do cobrado (${brl0(ult.glosado)}).`,'#glosas']);
+  if (pendN) alerts.push(['',`<b>${pendN} guias</b> com glosa pendente de documentação (${brl0(pendV)}).`,'#glosas']);
+  if (m.v>=Math.max(...o.months.map(x=>x.v))) alerts.push(['pos',`Produção de ${MESF[L].toLowerCase()} foi a maior do ano: <b>${brl0(m.v)}</b>.`,'#operacional']);
+
+  return `
+  <div><div class="eyebrow">Visão do dono</div><h1 class="title">${MESF[L]} de 2026<small>RESUMO DO ÚLTIMO MÊS FECHADO</small></h1></div>
+  <div class="kpis">
+    ${kpi('Produção da clínica', brlK(m.v)+delta(m.v,mp.v), `${nf(m.at)} atendimentos · ${nf(m.pac)} pacientes`, 'hero wide')}
+    ${kpi('Entradas', brlK(f.ent_total), 'conta Itaú · '+f.mes.split('/')[0].toLowerCase())}
+    ${kpi('Saídas', brlK(f.tot_out), pct(f.tot_out,f.ent_total)+' das entradas')}
+    ${kpi('Resultado operacional', brlK(f.resultado), 'margem de '+pctN(margem(f)), f.resultado<0?'neg':'pos')}
+    ${kpi('Glosado em '+nomeMesG, brlK(glV), pct(glV,glC)+' do cobrado no AMHP', glV/glC>0.05?'neg':'')}
+  </div>
+  ${alerts.length?`<div class="card"><div class="card-head"><div><h2>Pontos de atenção</h2></div></div><div class="alerts">${alerts.map(a=>`<a class="alert ${a[0]}" href="${a[2]}"><span>${a[1]}</span><span class="go">›</span></a>`).join('')}</div></div>`:''}
+  <div class="card">
+    <div class="card-head"><div><h2>Produção mês a mês</h2><div class="sub">Valor de HN por mês em 2026</div></div></div>
+    ${colChart(o.months.map((_,i)=>MES[i]), [{data:o.months.map(x=>x.v), color:'var(--c1)'}], {hl:L})}
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>Destaques de ${MESF[L].toLowerCase()}</h2><div class="sub">Solicitantes com maior produção</div></div><a class="badge" href="#operacional" style="text-decoration:none">ver ranking ›</a></div>
+    <div class="rank">${top.map((x,i)=>`<div class="it"><div class="ix">${i+1}</div><div class="nm">${esc(x.nome)}<small>${nf(x.p)} pacientes</small></div><div class="vl">${brl0(x.v)}<small>${brl0(x.v/x.p)}/paciente</small></div></div>`).join('')}</div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div><h2>KPI de ${D.kpi.MONTHS.at(-1).toLowerCase()}</h2><div class="sub">Painel de indicadores</div></div><a class="badge" href="#kpi" style="text-decoration:none">ver KPI ›</a></div>
+    <div class="kpis" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      ${(()=>{const k=D.kpi,i=k.MONTHS.length-1;return [
+        kpi('Pacientes novos', nf(k.pacientes.novos[i])+delta(k.pacientes.novos[i],k.pacientes.novos[i-1])),
+        kpi('No-show', pct1(k.pacientes.noshow[i]), 'mês anterior: '+pct1(k.pacientes.noshow[i-1]), k.pacientes.noshow[i]>0.18?'neg':''),
+        kpi('Ticket médio', brl0(kFatTot(i)/kAtTot(i)), 'por atendimento'),
+        kpi('Recebido AMHPDF', brlK(k.amhpdf[i])+delta(k.amhpdf[i],k.amhpdf[i-1]))].join('');})()}
+    </div>
+  </div>`;
+}
+
+/* ===================== FINANCEIRO ===================== */
+const finLabel = x => MES[+x.ym.slice(5)-1]+'/'+x.ym.slice(2,4);
+const margem = x => x.ent_total ? x.resultado/x.ent_total : 0;
+const pctN = (v,d=1) => (v*100).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})+'%';
+const ENT_CURTA = {'Recebimento de Convênio/Associação Médica':'Convênio — AMHPDF (parte da Pantheon)','Recebimento de Pacientes – Cartão (Débito/Crédito)':'Cartão (débito/crédito)','Recebimento de Pacientes – PIX':'PIX de pacientes','Entrada Lucas (Neuron)':'Entrada Lucas (Neuron)','Outras Entradas Operacionais':'Outras entradas'};
+function vFin(){
+  const F=D.financeiro; if (ST.finIdx===null||ST.finIdx>=F.length) ST.finIdx=F.length-1;
+  const f=F[ST.finIdx], fp=ST.finIdx>0?F[ST.finIdx-1]:null;
+  const chips = F.length>1 ? `<div class="chips">${F.map((x,i)=>`<button class="chip" aria-pressed="${ST.finIdx===i}" onclick="ST.finIdx=${i};rerender()">${finLabel(x)}</button>`).join('')}</div>` : '';
+  const cores=['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)'];
+  const a=f.amhpdf;
+  const ent=Object.entries(f.entradas).filter(([,v])=>v>0).map(([n,v],i)=>({n:ENT_CURTA[n]||n, v, c:cores[i%5],
+    det: n.startsWith('Recebimento de Convênio') ? [['Recebido da Associação (bruto)',a.bruto],['(−) Repasse GEROMASTER',-a.gero],...(a.segunda?[['(−) Repasse 2ª conta Pantheon',-a.segunda]]:[]),['= Parte da Pantheon',a.liquido]] : null
+  })).sort((x,y)=>y.v-x.v);
+  const sai=f.cats.map(c=>({n:c.nome, k:`${c.n} lanç.`, v:c.valor, c:'var(--c2)', det:c.det.map(d=>[d[0].startsWith('(')?d[0]:nome(d[0]),d[1]])}));
+  const tp=f.ticket.pix, tc=f.ticket.cartao;
+  const tot = F.reduce((s,x)=>({e:s.e+x.ent_total,s:s.s+x.tot_out,r:s.r+x.resultado}),{e:0,s:0,r:0});
+  const evo = F.length>1 ? `<div class="card"><div class="card-head"><div><h2>Evolução mês a mês</h2><div class="sub">Entradas × saídas operacionais · tabela em R$ mil</div></div></div>${colChart(F.map(finLabel),[{name:'Entradas',data:F.map(x=>x.ent_total),color:'var(--c1)'},{name:'Saídas',data:F.map(x=>x.tot_out),color:'var(--c2)'}],{hl:ST.finIdx})}
+    <div class="scroll"><table class="tbl compacta" style="margin-top:10px"><thead><tr><th>Mês</th><th>Entr.</th><th>Saídas</th><th>Result.</th><th>Marg.</th></tr></thead><tbody>${F.map(x=>`<tr><td>${finLabel(x)}</td><td>${mil(x.ent_total)}</td><td>${mil(x.tot_out)}</td><td class="${x.resultado<0?'neg':'pos'}">${mil(x.resultado)}</td><td>${pctN(margem(x))}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td>Total</td><td>${mil(tot.e)}</td><td>${mil(tot.s)}</td><td class="${tot.r<0?'neg':'pos'}">${mil(tot.r)}</td><td>${pctN(tot.e?tot.r/tot.e:0)}</td></tr></tfoot></table></div></div>` : '';
+  const dm = fp ? (margem(f)-margem(fp))*100 : null;
+  return `
+  <div><div class="eyebrow">Financeiro</div><h1 class="title">${f.mes}<small>CONTA ITAÚ · RESULTADO OPERACIONAL</small></h1></div>
+  ${chips}
+  <div class="kpis">
+    ${kpi('Resultado operacional', brlK(f.resultado)+(fp?delta(f.resultado,fp.resultado):''), `margem de ${pctN(margem(f))}${dm!==null?` · ${dm>=0?'+':''}${dm.toLocaleString('pt-BR',{maximumFractionDigits:1})} p.p. vs ${finLabel(fp)}`:''}`, 'hero wide')}
+    ${kpi('Entradas', brlK(f.ent_total)+(fp?delta(f.ent_total,fp.ent_total):''), 'AMHPDF líquido + pacientes')}
+    ${kpi('Saídas', brlK(f.tot_out)+(fp?delta(f.tot_out,fp.tot_out,true):''), pct(f.tot_out,f.ent_total)+' das entradas')}
+    ${kpi('Ticket médio PIX', tp.n?brl0(tp.v/tp.n):'—', `${nf(tp.n)} PIX de pacientes`)}
+    ${kpi('Ticket médio cartão', tc.n?brl0(tc.v/tc.n):'—', `${nf(tc.n)} transações`)}
+  </div>
+  ${evo}
+  <div class="card"><div class="card-head"><div><h2>De onde veio o dinheiro</h2><div class="sub">Toque no convênio para ver os repasses da Associação</div></div></div>${bars(ent,f.ent_total)}</div>
+  <div class="card"><div class="card-head"><div><h2>Para onde foi</h2><div class="sub">Toque numa categoria para ver os maiores pagamentos</div></div></div>${bars(sai,f.tot_out)}</div>
+  <div class="card"><div class="card-head"><div><h2>Resultado por quinzena</h2></div></div>
+    <table class="tbl"><thead><tr><th>Quinzena</th><th>Entradas</th><th>Saídas</th><th>Resultado</th></tr></thead><tbody>
+    ${f.quinzenas.map(q=>`<tr><td>${q.quinzena.replace(' quinzena','').replace('(','<br><span class="note">(')+'</span>'}</td><td>${brlK(q.entradas)}</td><td>${brlK(q.saidas)}</td><td class="${q.resultado<0?'neg':'pos'}">${brlK(q.resultado)}</td></tr>`).join('')}
+    </tbody></table></div>
+  <p class="note">Fonte: Relatório Financeiro Premium Pantheon. Resultado operacional não é saldo em conta: aplicação financeira, linha de crédito, cartão corporativo e transferências não operacionais ficam fora; do convênio entra só a parte da Pantheon (descontados os repasses à GEROMASTER e à 2ª conta). Reembolsos de custos divididos com a clínica parceira não contam como receita: são abatidos de Fornecedores${f.reembolso_parceira?` (${brl(f.reembolso_parceira)} neste mês)`:''}.</p>`;
+}
+
+/* ===================== OPERACIONAL ===================== */
+function vOp(){
+  const o=OP(), L=lastM(); if (ST.opMes===null) ST.opMes=L;
+  const ano = ST.opMes===-1, m0 = ano?0:ST.opMes, m1 = ano?L:ST.opMes;
+  const cur = ano ? o.ytd : o.months[m0];
+  const prev = !ano && m0>0 ? o.months[m0-1] : null;
+  const dias = ano ? o.months.reduce((s,x)=>s+x.dias,0) : cur.dias;
+  const chips = `<div class="chips">${[[-1,'Ano'],...o.months.map((_,i)=>[i,MES[i]])].map(([k,l])=>`<button class="chip" aria-pressed="${ST.opMes===k}" onclick="ST.opMes=${k};rerender()">${l}</button>`).join('')}</div>`;
+  const cols=['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)','var(--c6)'];
+  const cat = o.tipos.map((t,i)=>({n:t, v:cur.tipo[i], c:cols[i]})).sort((a,b)=>b.v-a.v);
+  const meds = medAgg(m0,m1);
+  const clin = meds.filter(x=>!x.rad).sort((a,b)=>b.v-a.v);
+  const rad = OP().radiologia.map(r=>{let v=0,p=0,d=0,n=0;for(let m=m0;m<=m1;m++){const x=r.m[m];v+=x[0];p+=x[1];d+=x[2];n+=x[3];}return{nome:r.nome,v,p,d,n};}).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+  const rk = (arr) => `<div class="rank">${arr.map((x,i)=>`<div class="it"><div class="ix">${i+1}</div><div class="nm">${esc(x.nome)}<small>${nf(x.p)} paciente${x.p===1?'':'s'} · ${nf(x.d)} dia${x.d===1?'':'s'} com atendimento${x.n?` · ${nf(x.n)} exames`:''}</small></div><div class="vl">${brl0(x.v)}<small>${brl0(x.v/x.d)}/dia · ${brl0(x.v/x.p)}/pac.</small></div></div>`).join('')}</div>`;
+  const per = ano ? `Janeiro a ${MESF[L].toLowerCase()} de 2026` : `${MESF[m0]} de 2026`;
+  return `
+  <div><div class="eyebrow">Operacional</div><h1 class="title">${per}<small>PRODUÇÃO · ATENDIMENTOS · MÉDICOS</small></h1></div>
+  ${chips}
+  <div class="kpis">
+    ${kpi('Produção', brlK(cur.v)+(prev?delta(cur.v,prev.v):''), '', 'hero wide')}
+    ${kpi('Atendimentos', nf(cur.at)+(prev?delta(cur.at,prev.at):''), 'paciente × dia')}
+    ${kpi('Pacientes', nf(ano?o.nPacAno:cur.pac), 'únicos no período')}
+    ${kpi('Ticket por paciente', brl0(cur.v/(ano?o.nPacAno:cur.pac)), '')}
+    ${kpi('Produção por dia', brl0(cur.v/dias), `${nf(dias)} dias com atendimento`)}
+  </div>
+  <div class="card"><div class="card-head"><div><h2>Produção por mês</h2><div class="sub">Total de cada mês — use os botões acima para filtrar</div></div></div>
+    ${colChart(o.months.map((_,i)=>MES[i]), [{data:o.months.map(x=>x.v), color:'var(--c1)'}], {hl:ano?null:m0})}
+  </div>
+  <div class="card"><div class="card-head"><div><h2>Por categoria</h2><div class="sub">Medicação considera só itens quitados</div></div></div>${bars(cat,cur.v)}</div>
+  <div class="card"><div class="card-head"><div><h2>Ranking de solicitantes</h2><div class="sub">Por produção; “por dia” compara de forma justa quem atende em menos períodos</div></div></div>${rk(clin)}</div>
+  <div class="card"><div class="card-head"><div><h2>Radiologistas</h2><div class="sub">Ranking separado, pelos exames que cada um realizou</div></div></div>${rad.length?rk(rad):'<p class="note">Sem exames no período.</p>'}</div>
+  <p class="note">Fonte: relatório 41 do sistema (${o.periodo[0].split('-').reverse().join('/')} a ${o.periodo[1].split('-').reverse().join('/')}). Valores de HN; hemograma conta como laboratório; ${nf(o.medNaoQuit.n)} itens de medicação sem quitação ficam de fora.</p>`;
+}
+
+/* ===================== KPI ===================== */
+const K = () => D.kpi;
+const kIdx = () => ST.kMes===-1 ? K().MONTHS.map((_,i)=>i) : [ST.kMes];
+const kSum = a => a.reduce((s,v)=>s+(v||0),0);
+const kMedia = a => { const f=a.filter(v=>v!=null); return f.length ? kSum(f)/f.length : null; };
+const mil = v => (v/1000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+const kFatTot = i => { const f=K().faturamento; return f.plano[i]+f.reembolso[i]+f.particular[i]; };
+const kAtTot = i => Object.values(K().atendimentos).reduce((s,a)=>s+a[i],0);
+const pct1 = v => v==null ? '—' : (v*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+function serieLinha(labels, series, opts={}) {
+  const W=340,H=opts.h||160,pl=opts.pl??36,pr=8,pt=10,pb=22;
+  const vs=series.flatMap(s=>s.data).filter(v=>v!=null);
+  const mx=opts.max??Math.max(...vs), mn=opts.min??Math.min(...vs,0);
+  const x=i=>pl+(labels.length>1?i/(labels.length-1):.5)*(W-pl-pr), y=v=>pt+(mx-v)/((mx-mn)||1)*(H-pt-pb);
+  const fmt=opts.fmt||(v=>v);
+  let g=''; [mn,(mn+mx)/2,mx].forEach(t=>{g+=`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${y(t)}" y2="${y(t)}"/><text x="${pl-4}" y="${y(t)+3}" text-anchor="end">${fmt(t)}</text>`;});
+  labels.forEach((l,i)=>{ g+=`<text x="${x(i)}" y="${H-6}" text-anchor="middle" ${opts.hl===i?'style="fill:var(--ink);font-weight:600"':''}>${l}</text>`; });
+  series.forEach(s=>{ let d='',pen=false; s.data.forEach((v,i)=>{ if(v==null){pen=false;return;} d+=`${pen?'L':'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`; pen=true; });
+    g+=`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`;
+    s.data.forEach((v,i)=>{ if(v!=null) g+=`<circle cx="${x(i)}" cy="${y(v)}" r="${opts.hl===i?4.5:3}" fill="${s.color}"><title>${labels[i]}: ${s.name?s.name+' ':''}${(opts.tip||fmt)(v)}</title></circle>`; }); });
+  const leg = series.length>1 ? `<div class="legend">${series.map(s=>`<span><i style="background:${s.color}"></i>${s.name}</span>`).join('')}</div>` : '';
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${g}</svg>${leg}`;
+}
+
+function vKpi(){
+  const k=K(), I=kIdx(), ML=k.MONTHS.map(m=>m.slice(0,3)), hl=ST.kMes===-1?null:ST.kMes;
+  const secs=[['geral','Visão geral'],['atend','Atendimentos'],['fat','Faturamento'],['pac','Pacientes'],['amh','AMHPDF'],['sat','Satisfação']];
+  const nav=`<div class="chips">${secs.map(([s,l])=>`<button class="chip" aria-pressed="${ST.kSec===s}" onclick="ST.kSec='${s}';rerender()">${l}</button>`).join('')}</div>`;
+  const mesChips = ST.kSec==='sat' ? '' : `<div class="chips" style="margin-top:-8px">${[[-1,'Jan–'+ML.at(-1)],...ML.map((l,i)=>[i,l])].map(([v,l])=>`<button class="chip" style="padding:5px 11px;font-size:.74rem" aria-pressed="${ST.kMes===v}" onclick="ST.kMes=${v};rerender()">${l}</button>`).join('')}</div>`;
+  const per = ST.kMes===-1 ? `Janeiro a ${k.MONTHS.at(-1).toLowerCase()} de 2026` : `${k.MONTHS[ST.kMes]} de 2026`;
+  const head = `<div><div class="eyebrow">Painel de indicadores</div><h1 class="title">${ST.kSec==='sat'?'Satisfação dos pacientes':per}<small>KPI PANTHEON</small></h1></div>${nav}${mesChips}`;
+  const prev = ST.kMes>0 ? ST.kMes-1 : null;
+  const cols=['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)','var(--c6)','#8C6790','#D8BE8A'];
+
+  if (ST.kSec==='geral') {
+    const fat=kSum(I.map(kFatTot)), at=kSum(I.map(kAtTot)), nov=kSum(I.map(i=>k.pacientes.novos[i]));
+    const noshow=kMedia(I.map(i=>k.pacientes.noshow[i])), amh=kSum(I.map(i=>k.amhpdf[i]));
+    const d=(a,b,inv)=>prev!==null?delta(a,b,inv):'';
+    const mix=[['Plano de saúde','plano'],['Reembolso','reembolso'],['Particular','particular']].map(([n,c],j)=>({n,v:kSum(I.map(i=>k.faturamento[c][i])),c:cols[j]}));
+    return head+`
+    <div class="kpis">
+      ${kpi('Faturamento total', brlK(fat)+d(fat,prev!==null&&kFatTot(prev)), 'plano + reembolso + particular', 'hero wide')}
+      ${kpi('Atendimentos', nf(at)+d(at,prev!==null&&kAtTot(prev)))}
+      ${kpi('Ticket médio', brl0(at?fat/at:0), 'por atendimento')}
+      ${kpi('Pacientes novos', nf(nov)+d(nov,prev!==null&&k.pacientes.novos[prev]))}
+      ${kpi('No-show médio', pct1(noshow), '', noshow>0.18?'neg':'')}
+      ${kpi('Recebido AMHPDF', brlK(amh), '', 'wide')}
+    </div>
+    <div class="card"><div class="card-head"><div><h2>Faturamento mensal</h2></div></div>${colChart(ML,[{data:k.MONTHS.map((_,i)=>kFatTot(i)),color:'var(--c1)'}],{hl})}</div>
+    <div class="card"><div class="card-head"><div><h2>Mix por origem</h2><div class="sub">Sem cortesias</div></div></div>${bars(mix,kSum(mix.map(x=>x.v)))}</div>
+    <div class="card"><div class="card-head"><div><h2>Taxa de no-show</h2></div></div>${serieLinha(ML,[{data:k.pacientes.noshow,color:'var(--c2)'}],{hl,fmt:v=>Math.round(v*100)+'%',tip:pct1,min:0})}</div>`;
+  }
+  if (ST.kSec==='atend') {
+    const it=k.services.map((s,j)=>({n:s,v:kSum(I.map(i=>k.atendimentos[s][i])),c:cols[j]})).sort((a,b)=>b.v-a.v);
+    const tot=kSum(it.map(x=>x.v));
+    const barsN = it.map(x=>`<div class="bar"><div class="row"><span>${esc(x.n)}</span><b>${nf(x.v)}<small>${pct(x.v,tot)}</small></b></div><div class="track"><i style="width:${(x.v/it[0].v*100).toFixed(1)}%;background:${x.c}"></i></div></div>`).join('');
+    return head+`
+    <div class="kpis">${kpi('Atendimentos', nf(tot)+(prev!==null?delta(kAtTot(ST.kMes),kAtTot(prev)):''), per, 'hero wide')}</div>
+    <div class="card"><div class="card-head"><div><h2>Por serviço</h2></div></div><div class="bars">${barsN}</div></div>
+    <div class="card"><div class="card-head"><div><h2>Total por mês</h2></div></div>${colChart(ML,[{data:k.MONTHS.map((_,i)=>kAtTot(i)),color:'var(--c1)'}],{hl,fmt:v=>nf(v),tip:v=>nf(v)+' atendimentos'})}</div>
+    <div class="card"><div class="card-head"><div><h2>Detalhamento mensal</h2></div></div><div class="scroll"><table class="tbl"><thead><tr><th>Serviço</th>${ML.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>
+      ${k.services.map(s=>`<tr><td>${esc(s)}</td>${k.atendimentos[s].map(v=>`<td>${nf(v)}</td>`).join('')}</tr>`).join('')}
+      </tbody><tfoot><tr><td>Total</td>${k.MONTHS.map((_,i)=>`<td>${nf(kAtTot(i))}</td>`).join('')}</tr></tfoot></table></div></div>`;
+  }
+  if (ST.kSec==='fat') {
+    const orig=[['Plano de saúde','plano'],['Reembolso','reembolso'],['Particular','particular']];
+    const fat=kSum(I.map(kFatTot)), cort=kSum(I.map(i=>k.faturamento.cortesia[i]));
+    const sv=k.valores ? k.services.map((s,j)=>({n:s,v:kSum(I.map(i=>k.valores[s][i])),c:cols[j]})).sort((a,b)=>b.v-a.v) : null;
+    return head+`
+    <div class="kpis">
+      ${kpi('Faturamento', brlK(fat)+(prev!==null?delta(kFatTot(ST.kMes),kFatTot(prev)):''), per, 'hero wide')}
+      ${orig.map(([n,c])=>{const v=kSum(I.map(i=>k.faturamento[c][i]));return kpi(n,brlK(v),pct(v,fat)+' do total');}).join('')}
+      ${kpi('Cortesias', brlK(cort), 'fora do total')}
+    </div>
+    <div class="card"><div class="card-head"><div><h2>Evolução por origem</h2></div></div>${serieLinha(ML,orig.map(([n,c],j)=>({name:n,data:k.faturamento[c],color:cols[j]})),{hl,fmt:v=>brlK(v).replace('R$ ',''),tip:brl,pl:44})}</div>
+    ${sv?`<div class="card"><div class="card-head"><div><h2>Por serviço</h2><div class="sub">Valor faturado no período</div></div></div>${bars(sv,kSum(sv.map(x=>x.v)))}</div>`:''}
+    <div class="card"><div class="card-head"><div><h2>Detalhamento mensal</h2><div class="sub">Valores em R$ mil</div></div></div><div class="scroll"><table class="tbl"><thead><tr><th>Mês</th><th>Plano</th><th>Reemb.</th><th>Partic.</th><th>Total</th></tr></thead><tbody>
+      ${k.MONTHS.map((m,i)=>`<tr><td>${m.slice(0,3)}</td><td>${mil(k.faturamento.plano[i])}</td><td>${mil(k.faturamento.reembolso[i])}</td><td>${mil(k.faturamento.particular[i])}</td><td><b>${mil(kFatTot(i))}</b></td></tr>`).join('')}
+      </tbody></table></div></div>`;
+  }
+  if (ST.kSec==='pac') {
+    const p=k.pacientes, nov=kSum(I.map(i=>p.novos[i]));
+    const msgI=I.filter(i=>p.mensagem[i]!=null), msg=kSum(msgI.map(i=>p.mensagem[i])), novMsg=kSum(msgI.map(i=>p.novos[i]));
+    const noshow=kMedia(I.map(i=>p.noshow[i]));
+    return head+`
+    <div class="kpis">
+      ${kpi('Pacientes novos', nf(nov)+(prev!==null?delta(p.novos[ST.kMes],p.novos[prev]):''), per, 'hero wide')}
+      ${kpi('Mensagens de consulta', msgI.length?nf(msg):'—', msgI.length<I.length?'sem dados em parte do período':'')}
+      ${kpi('Conversão', msgI.length?pct(novMsg,msg):'—', 'novos ÷ mensagens')}
+      ${kpi('No-show', pct1(noshow), ST.kMes===-1?'média do período':'', noshow>0.18?'neg':'', )}
+    </div>
+    <div class="card"><div class="card-head"><div><h2>Pacientes novos × mensagens</h2></div></div>${colChart(ML,[{name:'Mensagens',data:p.mensagem.map(v=>v??0),color:'var(--c4)'},{name:'Novos',data:p.novos,color:'var(--c2)'}],{hl,fmt:v=>nf(v),tip:v=>nf(v)})}<p class="note" style="margin-top:6px">Maio e junho sem registro de mensagens.</p></div>
+    <div class="card"><div class="card-head"><div><h2>Taxa de no-show</h2></div></div>${serieLinha(ML,[{data:p.noshow,color:'var(--neg)'}],{hl,fmt:v=>Math.round(v*100)+'%',tip:pct1,min:0})}</div>`;
+  }
+  if (ST.kSec==='amh') {
+    const a=k.amhpdf, v=kSum(I.map(i=>a[i]));
+    return head+`
+    <div class="kpis">
+      ${kpi('Recebido AMHPDF', brlK(v)+(prev!==null?delta(a[ST.kMes],a[prev]):''), per, 'hero wide')}
+      ${kpi('Média mensal', brlK(kSum(a)/a.length), 'jan a '+ML.at(-1).toLowerCase())}
+      ${kpi('Maior mês', brlK(Math.max(...a)), k.MONTHS[a.indexOf(Math.max(...a))])}
+    </div>
+    <div class="card"><div class="card-head"><div><h2>Recebido por mês</h2></div></div>${colChart(ML,[{data:a,color:'var(--c1)'}],{hl})}</div>
+    <div class="card"><div class="card-head"><div><h2>Detalhamento mensal</h2></div></div><table class="tbl"><tbody>${k.MONTHS.map((m,i)=>`<tr><td>${m}</td><td>${brl(a[i])}</td><td>${i?delta(a[i],a[i-1]):''}</td></tr>`).join('')}</tbody><tfoot><tr><td>Total</td><td>${brl(kSum(a))}</td><td></td></tr></tfoot></table></div>`;
+  }
+  return head + vSat();
+}
+
+/* ---- Satisfação (ao vivo, planilha do formulário) ---- */
+const SAT = { linhas:null, atualizado:'', erro:null, carregando:false, pedeChave:false };
+const satChave = () => { try { return localStorage.getItem('pantheon_csat_chave')||''; } catch(e){ return ''; } };
+async function satCarregar(){
+  if (SAT.carregando) return; SAT.carregando=true; SAT.erro=null; SAT.pedeChave=false;
+  try {
+    const r = await fetch(`${K().csatUrl}?chave=${encodeURIComponent(satChave())}&t=${Date.now()}`);
+    const j = await r.json();
+    if (!j.ok && j.erro==='CHAVE_INVALIDA') { SAT.pedeChave=true; SAT.erro = satChave() ? 'Chave incorreta. Tente novamente.' : null; }
+    else if (!j.ok) throw new Error(j.erro||'Resposta inválida');
+    else { SAT.linhas = Array.isArray(j.linhas)?j.linhas:[]; SAT.atualizado=j.atualizado_em||''; }
+  } catch(e) {
+    const publicado = /github\.io$/.test(location.hostname);
+    SAT.erro = publicado
+      ? 'Não foi possível falar com a planilha de avaliações agora. Verifique a internet e tente de novo.'
+      : 'Esta prévia bloqueia o acesso à planilha de avaliações do Google. A seção carrega normalmente no app publicado no GitHub Pages, do mesmo jeito que no site do KPI.';
+  }
+  SAT.carregando=false;
+  if ((location.hash||'').startsWith('#kpi') && ST.kSec==='sat') rerender();
+}
+function satEntrar(){ const v=document.getElementById('satKey').value.trim(); try{localStorage.setItem('pantheon_csat_chave',v);}catch(e){} satCarregar(); rerender(); }
+AFTER.kpi = () => { if (ST.kSec==='sat' && SAT.linhas===null && !SAT.carregando && !SAT.pedeChave && !SAT.erro) satCarregar(); };
+function satResumo(l){
+  const n=l.length, media=k=>{const v=l.map(x=>x[k]).filter(x=>typeof x==='number');return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;};
+  const sim=l.filter(x=>x.ind==='Com certeza').length, talvez=l.filter(x=>x.ind==='Talvez').length, nao=l.filter(x=>x.ind==='Não').length, nInd=sim+talvez+nao;
+  return {n, med:media('med'), agend:media('agend'), rec:media('rec'), csat:n?l.filter(x=>x.med>=4).length/n:null, sim,talvez,nao,nInd, nps:nInd?Math.round((sim-nao)/nInd*100):null};
+}
+const nota = v => v==null?'—':v.toFixed(2).replace('.',',');
+const p0 = v => v==null?'—':Math.round(v*100)+'%';
+const npsTxt = v => v==null?'—':(v>0?'+':'')+v;
+const zona = v => v==null?['Sem respostas','']:v>=75?['Zona de excelência','pos']:v>=50?['Zona de qualidade','pos']:v>=0?['Zona de aperfeiçoamento','']:['Zona crítica','neg'];
+function vSat(){
+  if (SAT.pedeChave) return `<div class="card empty"><b style="color:var(--ink)">Acesso às avaliações</b><span>${SAT.erro?`<span style="color:var(--neg)">${esc(SAT.erro)}</span>`:'Digite a chave de acesso do painel de satisfação (a mesma do site do KPI). Ela fica salva neste aparelho.'}</span>
+    <input id="satKey" class="search" type="password" placeholder="Chave de acesso" autocomplete="off" onkeydown="if(event.key==='Enter')satEntrar()" style="max-width:280px">
+    <button class="chip" aria-pressed="true" onclick="satEntrar()">Entrar</button></div>`;
+  if (SAT.erro) return `<div class="card empty"><b style="color:var(--ink)">${/github\.io$/.test(location.hostname)?'Avaliações indisponíveis':'Disponível no app publicado'}</b><span class="note">${esc(SAT.erro)}</span><button class="chip" onclick="SAT.erro=null;satCarregar();rerender()">Tentar de novo</button></div>`;
+  if (SAT.linhas===null) return `<div class="card empty"><div class="spin" style="border-color:var(--line);border-top-color:var(--gold)"></div><span>Carregando avaliações…</span></div>`;
+  if (!SAT.linhas.length) return `<div class="card empty"><b style="color:var(--ink)">Ainda não há avaliações</b></div>`;
+  const meses=[...new Set(SAT.linhas.map(l=>l.mes))].sort();
+  if (ST.satMes!=='all' && !meses.includes(ST.satMes)) ST.satMes='all';
+  const rot = ym => { const [a,m]=ym.split('-'); return MES[+m-1]+'/'+a.slice(2); };
+  const L = ST.satMes==='all' ? SAT.linhas : SAT.linhas.filter(l=>l.mes===ST.satMes);
+  const R=satResumo(L), i=meses.indexOf(ST.satMes), A = i>0 ? satResumo(SAT.linhas.filter(l=>l.mes===meses[i-1])) : null;
+  const dif=(a,b,suf)=>A&&a!=null&&b!=null?`<span class="delta ${a-b>=0?'up':'down'}">${a-b>=0?'▲':'▼'} ${Math.abs(Math.round(a-b))}${suf}</span>`:'';
+  const z=zona(R.nps), pm=meses.map(m=>satResumo(SAT.linhas.filter(l=>l.mes===m)));
+  const g={}; L.forEach(l=>(g[l.medico]=g[l.medico]||[]).push(l));
+  const rk=Object.keys(g).map(n=>({nome:n,...satResumo(g[n])})).sort((a,b)=>(b.med??0)-(a.med??0)||b.n-a.n);
+  const com=L.filter(l=>l.comentario).sort((a,b)=>String(b.data).localeCompare(String(a.data))).slice(0,12);
+  const pp=x=>R.nInd?x/R.nInd*100:0;
+  return `
+  <div class="chips" style="margin-top:-8px">${[['all','Todos'],...meses.map(m=>[m,rot(m)])].map(([v,l])=>`<button class="chip" style="padding:5px 11px;font-size:.74rem" aria-pressed="${ST.satMes===v}" onclick="ST.satMes='${v}';rerender()">${l}</button>`).join('')}</div>
+  <div class="kpis">
+    ${kpi('Índice de recomendação', npsTxt(R.nps)+dif(R.nps,A&&A.nps,' pts'), `<span class="badge ${z[1]}">${z[0]}</span> · de −100 a +100`, 'hero wide')}
+    ${kpi('Respostas', nf(R.n), ST.satMes==='all'?`${meses.length} meses`:'')}
+    ${kpi('CSAT do médico', p0(R.csat)+dif(R.csat*100,A&&A.csat*100,' p.p.'), 'notas 4 e 5')}
+    ${kpi('Nota do médico', nota(R.med), 'de 1 a 5')}
+    ${kpi('Agendamento', nota(R.agend), 'facilidade, de 1 a 5')}
+    ${kpi('Recepção', nota(R.rec), 'de 1 a 5', 'wide')}
+  </div>
+  <div class="card"><div class="card-head"><div><h2>Indicaria a clínica?</h2></div></div>
+    <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--soft)"><i style="width:${pp(R.sim)}%;background:var(--c1)"></i><i style="width:${pp(R.talvez)}%;background:var(--faint)"></i><i style="width:${pp(R.nao)}%;background:var(--neg)"></i></div>
+    <div class="legend"><span><i style="background:var(--c1)"></i>Com certeza ${Math.round(pp(R.sim))}%</span><span><i style="background:var(--faint)"></i>Talvez ${Math.round(pp(R.talvez))}%</span><span><i style="background:var(--neg)"></i>Não ${Math.round(pp(R.nao))}%</span></div></div>
+  ${meses.length>1?`<div class="card"><div class="card-head"><div><h2>Recomendação por mês</h2></div></div>${serieLinha(meses.map(rot),[{data:pm.map(r=>r.nps),color:'var(--c1)'}],{min:-100,max:100,fmt:v=>npsTxt(Math.round(v)),hl:i>=0?i:null})}</div>
+  <div class="card"><div class="card-head"><div><h2>Notas médias por mês</h2></div></div>${serieLinha(meses.map(rot),[{name:'Médico',data:pm.map(r=>r.med),color:'var(--c1)'},{name:'Agendamento',data:pm.map(r=>r.agend),color:'var(--c2)'},{name:'Recepção',data:pm.map(r=>r.rec),color:'var(--c4)'}],{min:1,max:5,fmt:v=>v.toFixed(0),tip:nota,hl:i>=0?i:null})}</div>`:''}
+  <div class="card"><div class="card-head"><div><h2>Ranking por médico</h2><div class="sub">Pela nota do médico</div></div></div>
+    <div class="rank">${rk.map((m,j)=>`<div class="it"><div class="ix">${j+1}</div><div class="nm">${esc(m.nome)}<small>${nf(m.n)} resposta${m.n===1?'':'s'}${m.n<5?' · poucas respostas':''} · CSAT ${p0(m.csat)} · recomendação ${npsTxt(m.nps)}</small></div><div class="vl">${nota(m.med)}<small>agend. ${nota(m.agend)} · recep. ${nota(m.rec)}</small></div></div>`).join('')}</div></div>
+  ${SAT.linhas.some(l=>'comentario' in l)?`<div class="card"><div class="card-head"><div><h2>O que os pacientes mudariam</h2><div class="sub">Comentários mais recentes</div></div></div>
+    ${com.length?`<div class="alerts">${com.map(c=>{const [a,m,d]=String(c.data).split('-');return `<div class="alert" style="border-left-color:var(--gold)"><span>“${esc(c.comentario)}”<br><span class="note">${d}/${m}/${a} · ${esc(c.ind||'—')}</span></span></div>`;}).join('')}</div>`:'<p class="note">Nenhum comentário neste período.</p>'}</div>`:''}
+  <p class="note">Avaliações ao vivo do formulário de satisfação${SAT.atualizado?` · atualizado em ${esc(SAT.atualizado)}`:''}. <a href="#kpi" onclick="SAT.linhas=null;satCarregar();rerender();return false" style="color:var(--accent)">Recarregar</a></p>`;
+}
+
+/* ===================== GLOSAS ===================== */
+function vGlosas(){
+  const Q=glQ();
+  const tot = Q.reduce((s,q)=>({c:s.c+q.cobrado,g:s.g+q.glosado}),{c:0,g:0});
+  const u=Q.at(-1), p=Q.at(-2);
+  const pend = Q.filter(q=>q.pendGuias>0);
+  const lab = s => s.replace('ª Quinzena de ','ª ').replace(/(\S{3})\S*$/,'$1');
+  return `
+  <div><div class="eyebrow">Glosas AMHP</div><h1 class="title">Pantheon<small>${Q.length} QUINZENAS · ${Q[0].label.toUpperCase()} A ${u.label.toUpperCase()}</small></h1></div>
+  <div class="kpis">
+    ${kpi('Última quinzena — glosado', brlK(u.glosado)+(p?delta(u.glosado,p.glosado,true):''), `${pct(u.glosado,u.cobrado)} de ${brlK(u.cobrado)} · ${u.label}`, 'hero wide')}
+    ${kpi('Guias com glosa', `${u.guiasG}<span style="font-size:.9rem;color:var(--muted)"> de ${u.guias}</span>`, pct(u.guiasG,u.guias)+' das guias')}
+    ${kpi('Repasse líquido', brlK(u.repasse), 'última quinzena')}
+    ${kpi('Glosado no período', brlK(tot.g), pct(tot.g,tot.c)+' do cobrado', 'wide')}
+  </div>
+  <div class="card"><div class="card-head"><div><h2>% glosado por quinzena</h2><div class="sub">Acima de 5% fica em vermelho</div></div></div>
+    ${colChart(Q.map(q=>q.k.endsWith('1')?q.k.slice(0,3).replace(/^./,x=>x.toUpperCase()):''), [{data:Q.map(q=>q.glosado/q.cobrado*100), color:v=>v>5?'var(--neg)':'var(--c1)'}], {fmt:t=>t.toFixed(0)+'%', tip:v=>v.toLocaleString('pt-BR',{maximumFractionDigits:1})+'%', pl:28})}
+  </div>
+  ${pend.length?`<div class="card"><div class="card-head"><div><h2>Pendente de documentação</h2><div class="sub">Guias com situação P no extrato</div></div><span class="badge neg">${pend.reduce((s,q)=>s+q.pendGuias,0)} guias</span></div>
+    <table class="tbl"><tbody>${pend.slice().reverse().map(q=>`<tr><td>${q.label}</td><td>${q.pendGuias} guia${q.pendGuias>1?'s':''}</td><td class="neg">${brl0(q.pendValor)}</td></tr>`).join('')}</tbody></table>
+    <p class="note" style="margin-top:8px">Conta a situação do extrato; guias já marcadas como “Enviado” no relatório de glosas podem aparecer aqui até a próxima atualização.</p></div>`:''}
+  <div class="card"><div class="card-head"><div><h2>Todas as quinzenas</h2></div></div>
+    <div class="scroll"><table class="tbl"><thead><tr><th>Quinzena</th><th>Cobrado</th><th>Glosado</th><th>%</th></tr></thead><tbody>
+    ${Q.slice().reverse().map(q=>`<tr><td>${lab(q.label)}</td><td>${brlK(q.cobrado)}</td><td>${brlK(q.glosado)}</td><td class="${q.glosado/q.cobrado>0.05?'neg':''}">${pct(q.glosado,q.cobrado)}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td>Total</td><td>${brlK(tot.c)}</td><td>${brlK(tot.g)}</td><td>${pct(tot.g,tot.c)}</td></tr></tfoot></table></div>
+  </div>`;
+}
+
+/* ===================== ESTOQUE ===================== */
+// Lido ao vivo (somente leitura) do documento pantheon/estoque do sistema de estoque.
+let EST = null, estErr = null, estQ = '', estCat = '', estHora = '';
+const estStatus = i => i.atual<=0 ? 'zerado' : i.atual<=i.min ? 'baixo' : 'ok';
+const AMP_UI = 240; // cada ampola de tirzepatida: 60 mg · 2,4 ml · 240 UI (seringa U-100)
+const dBR = s => { const m=/^(\d{2})\/(\d{2})\/(\d{4})/.exec(String(s||'')); return m ? new Date(+m[3],+m[2]-1,+m[1]) : null; };
+const semParceira = s => String(s??'').replace(/(cl[ií]nica\s+)?l[oó]tus(\s+by\s+pantheon)?/gi,'Clínica parceira');
+function estHead(){ return `<div><div class="eyebrow">Estoque</div><h1 class="title">Estoque Pantheon<small>AO VIVO DO CONTROLE DE ESTOQUE${estHora?' · '+estHora:''}</small></h1></div>`; }
+function estSeg(){ return `<div class="seg" role="group">${[['tirz','Tirzepatida'],['geral','Todo o estoque']].map(([k,l])=>`<button aria-pressed="${ST.estAba===k}" onclick="ST.estAba='${k}';rerender()">${l}</button>`).join('')}</div>`; }
+
+function vEstoque(){
+  if (!ST.estAba) ST.estAba = 'tirz';
+  if (estErr) return estHead() + `<div class="card empty"><b style="color:var(--ink)">Não foi possível ler o estoque</b><span class="note">${esc(estErr)}</span><button class="chip" onclick="estErr=null;EST=null;rerender()">Tentar de novo</button></div>`;
+  if (!EST) return estHead() + `<div class="card empty"><div class="spin" style="border-color:var(--line);border-top-color:var(--gold)"></div><span>Carregando estoque…</span></div>`;
+  return estHead() + estSeg() + (ST.estAba==='tirz' ? vTirz() : vEstGeral());
+}
+
+function vEstGeral(){
+  const inv = EST.inventario;
+  const zer = inv.filter(i=>estStatus(i)==='zerado'), bai = inv.filter(i=>estStatus(i)==='baixo');
+  const repor = [...zer, ...bai.sort((a,b)=>a.atual/(a.min||1)-b.atual/(b.min||1))];
+  const cats = [...new Set(inv.map(i=>i.cat))];
+  const q = estQ.toLowerCase();
+  const lista = inv.filter(i=>(!estCat||i.cat===estCat) && (!q||i.nome.toLowerCase().includes(q)));
+  const linhaRepor = i => `<tr><td>${esc(i.nome)}<br><span class="note">${esc(i.cat)}</span></td><td class="neg">${nf(i.atual)} ${esc(i.und)}</td><td>${nf(i.min)}</td><td><span class="badge ${estStatus(i)==='zerado'?'neg':''}">${estStatus(i)==='zerado'?'Zerado':'Baixo'}</span></td></tr>`;
+  return `
+  <div class="kpis">
+    ${kpi('Itens no estoque', nf(inv.length), `${nf(inv.length-zer.length-bai.length)} em dia`, 'hero wide')}
+    ${kpi('Abaixo do mínimo', nf(bai.length), '', bai.length?'neg':'pos')}
+    ${kpi('Zerados', nf(zer.length), '', zer.length?'neg':'pos')}
+  </div>
+  ${repor.length?`<div class="card"><div class="card-head"><div><h2>Repor</h2><div class="sub">Zerados e abaixo do mínimo</div></div><span class="badge neg">${repor.length}</span></div>
+    <table class="tbl"><thead><tr><th>Produto</th><th>Atual</th><th>Mín.</th><th></th></tr></thead><tbody>${repor.map(linhaRepor).join('')}</tbody></table></div>`
+   :`<div class="card empty"><b style="color:var(--pos)">Todo o estoque está adequado</b></div>`}
+  <div class="card"><div class="card-head"><div><h2>Todo o estoque</h2></div></div>
+    ${cats.length<2?'':`<div class="chips" style="margin-bottom:10px">${[['','Todas'],...cats.map(c=>[c,c.charAt(0)+c.slice(1).toLowerCase()])].map(([v,l])=>`<button class="chip" style="padding:5px 11px;font-size:.74rem" aria-pressed="${estCat===v}" onclick="estCat='${esc(v)}';rerender()">${esc(l)}</button>`).join('')}</div>`}
+    <input class="search" placeholder="Buscar produto" value="${esc(estQ)}" oninput="estQ=this.value;clearTimeout(window._t);window._t=setTimeout(()=>{rerender();const i=document.querySelector('.search');i.focus();i.setSelectionRange(i.value.length,i.value.length)},250)">
+    <table class="tbl" style="margin-top:8px"><tbody>${lista.map(i=>{const s=estStatus(i);return `<tr><td>${esc(i.nome)}<br><span class="note">${esc(i.cat)} · mín. ${nf(i.min)}</span></td><td class="${s==='ok'?'':'neg'}"><b>${nf(i.atual)}</b> ${esc(i.und)}</td></tr>`;}).join('')||'<tr><td class="note">Nenhum produto encontrado.</td></tr>'}</tbody></table>
+  </div>
+  <p class="note">Somente leitura — entradas e saídas continuam sendo lançadas no Controle de Estoque.</p>`;
+}
+
+/* ---- Tirzepatida: disponível agora + relatório geral (mesmas regras do Controle de Estoque) ---- */
+function vTirz(){
+  const T = EST.t;
+  if (!T) return `<div class="card empty"><b style="color:var(--ink)">Sem registros de tirzepatida no Controle de Estoque</b></div>`;
+  const usado = (id, apps) => apps.filter(a=>a.ampId===id).reduce((s,a)=>s+(+a.doseUI||0),0);
+
+  // ---------- disponível agora ----------
+  let e={STIN:0,REVALIFE:0,OUTRO:0}, sd={STIN:0,REVALIFE:0,OUTRO:0};
+  T.amp.forEach(r=>{ const m = r.marca==='STIN'||r.marca==='REVALIFE' ? r.marca : 'OUTRO'; (r.tipo==='entrada'?e:sd)[m]+= +r.qty||0; });
+  const saldo = m => e[m]-sd[m];
+  const fechadas = saldo('STIN')+saldo('REVALIFE')+saldo('OUTRO');
+  const ai = T.ampInt.find(a=>a.ativa) || T.ampInt[T.ampInt.length-1];
+  const aiRest = ai ? Math.max(0, AMP_UI - usado(ai.id, T.apInt)) : 0;
+  const pacAtivas = T.ampPac.filter(a=>a.ativa).map(a=>({...a, rest: Math.max(0, AMP_UI - usado(a.id, T.apPac))})).sort((a,b)=>a.rest-b.rest);
+  const empAbertos = T.ev.filter(r=>r.tipo==='emprestimo' && r.status!=='devolvido');
+  const corUI = r => r<=30?'var(--neg)':r<=80?'var(--warn)':'var(--pos)';
+  const barra = (rest) => `<div class="track" style="height:10px"><i style="width:${Math.round(rest/AMP_UI*100)}%;background:${corUI(rest)}"></i></div>`;
+
+  // ---------- relatório (período) ----------
+  const dias = ST.tirzPer;  // 0 = tudo
+  const hoje = new Date(); hoje.setHours(23,59,59,999);
+  const de = dias ? new Date(hoje.getTime() - (dias-1)*864e5) : null; if (de) de.setHours(0,0,0,0);
+  const noPer = d => { const x=dBR(d); return !de || (x && x>=de && x<=hoje); };
+  const ampP = T.amp.filter(r=>noPer(r.data));
+  const ent = ampP.filter(r=>r.tipo==='entrada'), sai = ampP.filter(r=>r.tipo!=='entrada');
+  const totE = ent.reduce((s,r)=>s+(+r.qty||0),0), totS = sai.reduce((s,r)=>s+(+r.qty||0),0);
+  const doses = T.doses.filter(r=>noPer(r.data)).sort((a,b)=>dBR(b.data)-dBR(a.data));
+  const vendas = T.ev.filter(r=>r.tipo==='venda' && noPer(r.dataSaida)), emps = T.ev.filter(r=>r.tipo==='emprestimo' && noPer(r.dataSaida));
+  const totV = vendas.reduce((s,r)=>s+(+r.qty||0),0), totEmp = emps.reduce((s,r)=>s+(+r.qty||0),0);
+  const usoInt = T.ampInt.filter(r=>noPer(r.abertura)).length, compPac = T.ampPac.filter(r=>noPer(r.abertura)).length;
+  // médias de consumo — mesma conta do Controle de Estoque
+  const todasDatas = T.doses.map(r=>dBR(r.data)).filter(Boolean);
+  const ini = de || (todasDatas.length ? new Date(Math.min(...todasDatas)) : new Date());
+  const nDias = Math.max(1, Math.round((hoje - ini)/864e5)+1);
+  const nDoses = T.apInt.filter(r=>noPer(r.data)).length + T.apPac.filter(r=>noPer(r.data)).length;
+  const nAmps = T.ampInt.filter(r=>!r.ativa && noPer(r.abertura)).length + T.ampPac.filter(r=>!r.ativa && noPer(r.abertura)).length;
+  const f1 = (v,d=1) => v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const dSem = nDoses/(nDias/7), dMes = nDoses/(nDias/30.44), aSem = nAmps/(nDias/7), aMes = nAmps/(nDias/30.44);
+  const semanasEstoque = aSem>0 ? fechadas/aSem : null;
+  // doses por mês
+  const porMes = {}; T.doses.forEach(r=>{ const x=dBR(r.data); if(!x) return; const k=x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0'); porMes[k]=(porMes[k]||0)+1; });
+  const mk = Object.keys(porMes).sort().slice(-8);
+  // top pacientes
+  const cnt = {}; doses.forEach(r=>{ const n=semParceira(r.paciente||'—'); cnt[n]=(cnt[n]||0)+1; });
+  const top = Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const ult = [...T.amp].filter(r=>r.tipo==='entrada').sort((a,b)=>dBR(b.data)-dBR(a.data))[0];
+  const perChips = `<div class="chips">${[[30,'30 dias'],[60,'60 dias'],[90,'90 dias'],[0,'Tudo']].map(([v,l])=>`<button class="chip" aria-pressed="${ST.tirzPer===v}" onclick="ST.tirzPer=${v};rerender()">${l}</button>`).join('')}</div>`;
+  const tabela = (cab, linhas, vazio) => linhas.length ? `<div class="scroll"><table class="tbl lista"><thead><tr>${cab.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${linhas.join('')}</tbody></table></div>` : `<p class="note">${vazio}</p>`;
+
+  return `
+  <div class="kpis">
+    ${kpi('Tirzepatida disponível', `${nf(fechadas)} amp`, `fechadas em estoque${semanasEstoque!==null?` · dá para ~${f1(semanasEstoque,0)} semanas no ritmo atual`:''}`, 'hero wide')}
+    ${kpi('STIN', `${nf(saldo('STIN'))} amp`, `${nf(e.STIN)} entradas · ${nf(sd.STIN)} saídas`, saldo('STIN')<=0?'neg':'')}
+    ${kpi('Revalife', `${nf(saldo('REVALIFE'))} amp`, `${nf(e.REVALIFE)} entradas · ${nf(sd.REVALIFE)} saídas`, saldo('REVALIFE')<=0?'neg':'')}
+  </div>
+  ${ai?`<div class="card"><div class="card-head"><div><h2>Ampola de uso interno</h2><div class="sub">${esc(ai.id)} · ${esc(ai.marca)} · aberta em ${esc(ai.abertura)}</div></div><span class="badge ${aiRest<=30?'neg':aiRest<=80?'':'pos'}">${Math.round(aiRest/AMP_UI*100)}%</span></div>
+    <div class="bar"><div class="row"><span>Disponível</span><b>${nf(aiRest)} UI<small>${f1(aiRest/100,2)} ml de 2,40 ml</small></b></div>${barra(aiRest)}</div>
+    ${aiRest<=30?`<p class="note" style="color:var(--neg);margin-top:8px">${aiRest<=0?'Ampola esgotada — é preciso abrir uma nova.':'Quase no fim — separe a próxima ampola.'}</p>`:''}</div>`:''}
+  <div class="card"><div class="card-head"><div><h2>Ampolas de pacientes em uso</h2><div class="sub">Ampolas próprias dos pacientes, guardadas na clínica</div></div><span class="badge">${pacAtivas.length}</span></div>
+    ${pacAtivas.length?`<div class="bars">${pacAtivas.map(a=>`<div class="bar"><div class="row"><span>${esc(semParceira(a.paciente))}<small>${esc(a.marca)}</small></span><b>${nf(a.rest)} UI</b></div>${barra(a.rest)}</div>`).join('')}</div>`:'<p class="note">Nenhuma ampola de paciente em uso.</p>'}</div>
+  ${empAbertos.length?`<div class="card"><div class="card-head"><div><h2>Empréstimos em aberto</h2><div class="sub">Ampolas que saíram e ainda não voltaram</div></div><span class="badge neg">${empAbertos.reduce((s,r)=>s+(+r.qty||0),0)} amp</span></div>
+    ${tabela(['Saída','Para','Marca','Qtd'], empAbertos.map(r=>`<tr><td>${esc(r.dataSaida)}</td><td>${esc(semParceira(r.nome))}</td><td>${esc(r.marca||'')}</td><td>${nf(+r.qty||0)}</td></tr>`), '')}</div>`:''}
+
+  <div style="margin-top:6px"><div class="eyebrow">Relatório de tirzepatida</div></div>
+  ${perChips}
+  <div class="kpis">
+    ${kpi('Doses aplicadas', nf(doses.length), dias?`últimos ${dias} dias`:'todo o período', 'hero wide')}
+    ${kpi('Entradas', `${nf(totE)} amp`, `${nf(ent.length)} pedidos`)}
+    ${kpi('Saídas', `${nf(totS)} amp`, 'do estoque')}
+    ${kpi('Uso interno', `${nf(usoInt)} amp`, 'ampolas da clínica abertas')}
+    ${kpi('Compras de pacientes', `${nf(compPac)} amp`, 'ampolas próprias')}
+    ${kpi('Vendas externas', `${nf(totV)} amp`, `${nf(vendas.length)} vendas`)}
+    ${kpi('Empréstimos', `${nf(totEmp)} amp`, `${nf(emps.length)} registros`)}
+  </div>
+  <div class="card"><div class="card-head"><div><h2>Média de consumo</h2><div class="sub">Período de ${nf(nDias)} dias · ${nf(nDoses)} aplicações e ${nf(nAmps)} ampolas finalizadas (uso interno + pacientes)</div></div></div>
+    <div class="kpis" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      ${kpi('Doses por semana', f1(dSem))}${kpi('Doses por mês', f1(dMes))}
+      ${kpi('Ampolas por semana', f1(aSem,2))}${kpi('Ampolas por mês', f1(aMes))}
+    </div></div>
+  ${mk.length?`<div class="card"><div class="card-head"><div><h2>Doses por mês</h2></div></div>${colChart(mk.map(k=>MES[+k.slice(5)-1]),[{data:mk.map(k=>porMes[k]),color:'var(--c1)'}],{fmt:v=>nf(v),tip:v=>nf(v)+' doses',pl:30})}</div>`:''}
+  ${ult?`<div class="card"><div class="card-head"><div><h2>Última entrada</h2><div class="sub">${esc(ult.data)} · ${nf(+ult.qty||0)} ampola(s) ${esc(ult.marca)}</div></div></div></div>`:''}
+  <div class="card"><div class="card-head"><div><h2>Pacientes com mais doses</h2><div class="sub">${dias?`Últimos ${dias} dias`:'Todo o período'}</div></div></div>
+    ${top.length?`<div class="rank">${top.map(([n,c],i)=>`<div class="it"><div class="ix">${i+1}</div><div class="nm">${esc(n)}</div><div class="vl">${nf(c)}<small>dose${c===1?'':'s'}</small></div></div>`).join('')}</div>`:'<p class="note">Nenhuma dose no período.</p>'}</div>
+  <div class="card"><div class="card-head"><div><h2>Entradas de ampolas</h2></div></div>
+    ${tabela(['Data','Marca','Qtd'], ent.sort((a,b)=>dBR(b.data)-dBR(a.data)).map(r=>`<tr><td>${esc(r.data)}</td><td>${esc(r.marca)}</td><td>${nf(+r.qty||0)}</td></tr>`), 'Nenhuma entrada no período.')}</div>
+  <div class="card"><div class="card-head"><div><h2>Doses aplicadas</h2><div class="sub">Mais recentes primeiro${doses.length>30?' · últimas 30':''}</div></div></div>
+    ${tabela(['Data','Paciente','Dose'], doses.slice(0,30).map(r=>`<tr><td>${esc(r.data)}</td><td>${esc(semParceira(r.paciente))}</td><td>${esc(r.dose||'')}</td></tr>`), 'Nenhuma dose no período.')}</div>
+  <p class="note">Somente leitura, ao vivo do Controle de Estoque. Cada ampola tem 240 UI (2,4 ml · 60 mg).</p>`;
+}
+
+AFTER.estoque = async () => {
+  if (EST || estErr) return;
+  try {
+    const V='10.12.2';
+    const {initializeApp, getApps} = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+    const {getFirestore, doc, getDoc} = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+    const app = getApps().find(a=>a.name==='pantheon-na-mao') || initializeApp(ESTOQUE.firebaseConfig, 'pantheon-na-mao');
+    const snap = await getDoc(doc(getFirestore(app), ...ESTOQUE.documento));
+    if (!snap.exists()) throw new Error('documento de estoque não encontrado');
+    const d = snap.data();
+    const inv = (d.inventario||[]).filter(i=>i && i.nome).map(i=>({cat:String(i.cat||'OUTROS'), nome:String(i.nome), atual:Number(i.atual)||0, min:Number(i.min)||0, und:String(i.und||'')}));
+    const arr = x => Array.isArray(x) ? x : [];
+    const t = arr(d.ampData).length || arr(d.doseData).length || arr(d.ampInternas).length ? {
+      amp: arr(d.ampData), doses: arr(d.doseData), ampInt: arr(d.ampInternas), apInt: arr(d.aplicacoesInternas),
+      ampPac: arr(d.ampPacientes), apPac: arr(d.aplicacoesPaciente), ev: arr(d.empVendas)
+    } : null;
+    EST = {inventario:inv, t};
+    estHora = 'lido às ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  } catch(e) { estErr = e.message || String(e); }
+  if ((location.hash||'').startsWith('#estoque')) rerender();
+};
+
+/* ===================== Início ===================== */
+if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+boot();
+</script>
+</body>
+</html>
