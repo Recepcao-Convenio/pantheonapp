@@ -425,8 +425,12 @@ function medAgg(m0,m1){ // agrega médicos no intervalo de meses
 function vInicio(){
   const o=OP(), L=lastM(), m=o.months[L], mp=o.months[L-1], f=D.financeiro.at(-1);
   const gP=glQ();
-  const lastTwo = a => a.slice(-2); const sum=(a,k)=>a.reduce((s,x)=>s+x[k],0);
-  const gMes=lastTwo(gP);
+  const sum=(a,k)=>a.reduce((s,x)=>s+x[k],0);
+  // último mês com as duas quinzenas lançadas (não mistura meses)
+  const porMesG = {}; gP.forEach(g=>{ (porMesG[g.k.slice(0,3)] = porMesG[g.k.slice(0,3)] || []).push(g); });
+  const mesesG = Object.keys(porMesG); const mesCompleto = [...mesesG].reverse().find(m=>porMesG[m].length>=2) || mesesG.at(-1);
+  const gMes = porMesG[mesCompleto] || [];
+  const nomeMesG = (gMes[0]?.label||'').replace(/^.*Quinzena de /,'').toLowerCase();
   const glV=sum(gMes,'glosado'), glC=sum(gMes,'cobrado');
   const pend=gP.filter(g=>g.pendGuias>0);
   const pendN=pend.reduce((s,g)=>s+g.pendGuias,0), pendV=pend.reduce((s,g)=>s+g.pendValor,0);
@@ -447,7 +451,7 @@ function vInicio(){
     ${kpi('Entradas', brlK(f.ent_total), 'conta Itaú · '+f.mes.split('/')[0].toLowerCase())}
     ${kpi('Saídas', brlK(f.tot_out), pct(f.tot_out,f.ent_total)+' das entradas')}
     ${kpi('Resultado operacional', brlK(f.resultado), 'margem de '+pctN(margem(f)), f.resultado<0?'neg':'pos')}
-    ${kpi('Glosado no mês', brlK(glV), pct(glV,glC)+' do cobrado no AMHP', glV/glC>0.05?'neg':'')}
+    ${kpi('Glosado em '+nomeMesG, brlK(glV), pct(glV,glC)+' do cobrado no AMHP', glV/glC>0.05?'neg':'')}
   </div>
   ${alerts.length?`<div class="card"><div class="card-head"><div><h2>Pontos de atenção</h2></div></div><div class="alerts">${alerts.map(a=>`<a class="alert ${a[0]}" href="${a[2]}"><span>${a[1]}</span><span class="go">›</span></a>`).join('')}</div></div>`:''}
   <div class="card">
