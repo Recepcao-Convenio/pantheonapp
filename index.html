@@ -328,7 +328,7 @@ function lock(){ D=null; pin=''; drawDots(); $('#main').innerHTML=''; $('#app').
 function unlock(){ $('#lock').hidden=true; $('#app').hidden=false; pin='';
   const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(D.atualizado||'');
   $('#hdrMeta').innerHTML = m ? `Atualizado<br>${m[3]}/${m[2]}${m[4]?' às '+m[4]+'h'+m[5]:'/'+m[1]}` : '';
-  D.kpiAoVivo = false; route(); kpiAoVivo(); }
+  D.kpiAoVivo = false; ENVIO = null; envioErr = false; route(); kpiAoVivo(); carregarEnvio(); }
 
 /* --- KPI ao vivo: lê os números direto do site do KPI --- */
 function lerLiteral(src, nome){
@@ -432,8 +432,8 @@ function vInicio(){
   const gMes = porMesG[mesCompleto] || [];
   const nomeMesG = (gMes[0]?.label||'').replace(/^.*Quinzena de /,'').toLowerCase();
   const glV=sum(gMes,'glosado'), glC=sum(gMes,'cobrado');
-  const pend=gP.filter(g=>g.pendGuias>0);
-  const pendN=pend.reduce((s,g)=>s+g.pendGuias,0), pendV=pend.reduce((s,g)=>s+g.pendValor,0);
+  const pendR=gP.map(pendQ);
+  const pendN=pendR.reduce((s,x)=>s+x.n,0), pendV=pendR.reduce((s,x)=>s+x.v,0);
   const top = medAgg(L,L).filter(x=>!x.rad).sort((a,b)=>b.v-a.v).slice(0,3);
 
   const alerts=[];
@@ -441,7 +441,7 @@ function vInicio(){
   const fAnt = D.financeiro.at(-2);
   if (fAnt && f.ent_total && fAnt.ent_total && margem(f) < margem(fAnt) - 0.005) alerts.push(['',`Margem operacional caiu para <b>${pctN(margem(f))}</b> em ${f.mes.split('/')[0].toLowerCase()} (era ${pctN(margem(fAnt))} em ${finLabel(fAnt)}).`,'#financeiro']);
   const ult=gP.at(-1); if (ult && ult.glosado/ult.cobrado>0.05) alerts.push(['',`Glosa da ${ult.label.toLowerCase()} chegou a <b>${pct(ult.glosado,ult.cobrado)}</b> do cobrado (${brl0(ult.glosado)}).`,'#glosas']);
-  if (pendN) alerts.push(['',`<b>${pendN} guias</b> com glosa pendente de documentação (${brl0(pendV)}).`,'#glosas']);
+  if (pendN) alerts.push(['',`<b>${pendN} guia${pendN>1?'s':''}</b> aguardando envio de documentação (${brl0(pendV)} glosado).`,'#glosas']);
   if (m.v>=Math.max(...o.months.map(x=>x.v))) alerts.push(['pos',`Produção de ${MESF[L].toLowerCase()} foi a maior do ano: <b>${brl0(m.v)}</b>.`,'#operacional']);
 
   return `
@@ -729,21 +729,47 @@ function vSat(){
 }
 
 /* ===================== GLOSAS ===================== */
+// Marcações "Enviado/Pendente" feitas no sistema de glosas (nuvem: pantheon/glosas-envio)
+let ENVIO = null, envioErr = false;
+async function carregarEnvio(){
+  try {
+    const V='10.12.2';
+    const {initializeApp, getApps} = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+    const {getFirestore, doc, getDoc} = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+    const app = getApps().find(a=>a.name==='pantheon-na-mao') || initializeApp(ESTOQUE.firebaseConfig, 'pantheon-na-mao');
+    const snap = await getDoc(doc(getFirestore(app), 'pantheon', 'glosas-envio'));
+    ENVIO = snap.exists() ? (snap.data()||{}) : {}; envioErr = false;
+  } catch(e) { envioErr = true; console.warn('marcações de envio indisponíveis:', e.message||e); }
+  const v=(location.hash||'#inicio').slice(1); if (D && (v===''||v==='inicio'||v==='glosas')) rerender();
+}
+// pendências reais de uma quinzena: guias com situação P que NÃO estão marcadas como "Enviado"
+function pendQ(q){
+  const lista = q.pendLista || [];
+  const marc = (ENVIO && ENVIO[q.k] && ENVIO[q.k].g) || {};
+  const pend = lista.filter(x=>marc[x.guia]!=='Enviado'), env = lista.filter(x=>marc[x.guia]==='Enviado');
+  return {pend, env, n:pend.length, v:pend.reduce((s,x)=>s+x.valor,0)};
+}
 function vGlosas(){
   const Q=glQ();
   const tot = Q.reduce((s,q)=>({c:s.c+q.cobrado,g:s.g+q.glosado}),{c:0,g:0});
   const u=Q.at(-1), p=Q.at(-2);
-  const pend = Q.filter(q=>q.pendGuias>0);
   const lab = s => s.replace('ª Quinzena de ','ª ').replace(/(\S{3})\S*$/,'$1');
-  const pG = pend.reduce((s,q)=>s+q.pendGuias,0), pV = pend.reduce((s,q)=>s+q.pendValor,0);
-  // situação P no extrato AMHP = documentação pendente de envio pelo associado
-  const pendCard = pend.length ? `<div class="card" style="border-left:4px solid var(--neg)">
-    <div class="card-head"><div><h2>Pendência de envio de documento</h2><div class="sub">Sim — ${nf(pG)} guia${pG>1?'s':''} com situação P no extrato AMHP, ${brl(pV)} glosado aguardando documentação</div></div><span class="badge neg">Pendente</span></div>
-    ${pend.slice().reverse().map(q=>`<details class="bar" style="margin-top:10px"><summary><div class="row"><span>${esc(q.label)}<span class="chev">▶</span></span><b>${nf(q.pendGuias)} guia${q.pendGuias>1?'s':''}<small>${brl0(q.pendValor)}</small></b></div></summary>
-      ${q.pendLista?`<div class="scroll"><table class="tbl lista" style="margin-top:6px"><thead><tr><th>Guia</th><th>Paciente · convênio</th><th>Valor</th></tr></thead><tbody>${q.pendLista.map(x=>`<tr><td>${esc(x.guia)}</td><td>${esc(x.pac)}<br><span class="note">${esc(x.conv)} · atend. ${esc(x.atend)}${x.itens>1?` · ${x.itens} itens`:''}</span></td><td class="neg">${brl(x.valor)}</td></tr>`).join('')}</tbody></table></div>`:''}
+  // situação P no extrato AMHP = documentação pendente pelo associado; descontadas as guias marcadas "Enviado" no sistema de glosas
+  const PQ = Q.map(q=>({q, ...pendQ(q)}));
+  const comP = PQ.filter(x=>x.pend.length+x.env.length>0), pend = PQ.filter(x=>x.n>0);
+  const pG = pend.reduce((s,x)=>s+x.n,0), pV = pend.reduce((s,x)=>s+x.v,0), eG = PQ.reduce((s,x)=>s+x.env.length,0);
+  const fonte = ENVIO ? `Situação P do extrato da AMHPDF, descontando as guias marcadas como “Enviado” no sistema de glosas.`
+    : envioErr ? `Não consegui ler as marcações “Enviado” agora — mostrando todas as guias com situação P do extrato.`
+    : `Carregando as marcações “Enviado” do sistema de glosas…`;
+  const linhaGuia = (x,enviada) => `<tr><td>${esc(x.guia)}</td><td>${esc(x.pac)}<br><span class="note">${esc(x.conv)} · atend. ${esc(x.atend)}${x.itens>1?` · ${x.itens} itens`:''}</span></td><td>${enviada?'<span class="badge pos">Enviado</span>':`<span class="neg">${brl(x.valor)}</span>`}</td></tr>`;
+  const pendCard = pG ? `<div class="card" style="border-left:4px solid var(--neg)">
+    <div class="card-head"><div><h2>Pendência de envio de documento</h2><div class="sub">Sim — ${nf(pG)} guia${pG>1?'s':''} aguardando envio · ${brl(pV)} glosado${eG?` · ${nf(eG)} já enviada${eG>1?'s':''}`:''}</div></div><span class="badge neg">Pendente</span></div>
+    ${comP.slice().reverse().map(x=>`<details class="bar" style="margin-top:10px"><summary><div class="row"><span>${esc(x.q.label)}<span class="chev">▶</span></span><b>${x.n?`${nf(x.n)} pendente${x.n>1?'s':''}<small>${brl0(x.v)}</small>`:`<span class="badge pos">tudo enviado</span>`}</b></div></summary>
+      <div class="scroll"><table class="tbl lista" style="margin-top:6px"><thead><tr><th>Guia</th><th>Paciente · convênio</th><th>Situação</th></tr></thead><tbody>${x.pend.map(g=>linhaGuia(g,false)).join('')}${x.env.map(g=>linhaGuia(g,true)).join('')}</tbody></table></div>
     </details>`).join('')}
-    <p class="note" style="margin-top:10px">Pela situação P do extrato da AMHPDF. Guias já enviadas continuam aparecendo até a AMHPDF mudar a situação no próximo extrato.</p></div>`
-  : `<div class="card" style="border-left:4px solid var(--pos)"><div class="card-head"><div><h2>Pendência de envio de documento</h2><div class="sub">Não — nenhuma guia com documentação pendente nos extratos</div></div><span class="badge pos">Em dia</span></div></div>`;
+    <p class="note" style="margin-top:10px">${fonte}</p></div>`
+  : `<div class="card" style="border-left:4px solid var(--pos)"><div class="card-head"><div><h2>Pendência de envio de documento</h2><div class="sub">Não — ${eG?`todas as ${nf(eG)} guias com situação P já foram enviadas`:'nenhuma guia com documentação pendente nos extratos'}</div></div><span class="badge pos">Em dia</span></div>
+    <p class="note">${fonte}</p></div>`;
   return `
   <div><div class="eyebrow">Glosas AMHP</div><h1 class="title">Pantheon<small>${Q.length} QUINZENAS · ${Q[0].label.toUpperCase()} A ${u.label.toUpperCase()}</small></h1></div>
   ${pendCard}
@@ -758,7 +784,7 @@ function vGlosas(){
   </div>
   <div class="card"><div class="card-head"><div><h2>Todas as quinzenas</h2></div></div>
     <div class="scroll"><table class="tbl compacta"><thead><tr><th>Quinzena</th><th>Cobrado</th><th>Glosado</th><th>%</th><th>Doc.</th></tr></thead><tbody>
-    ${Q.slice().reverse().map(q=>`<tr><td>${lab(q.label)}</td><td>${brlK(q.cobrado)}</td><td>${brlK(q.glosado)}</td><td class="${q.glosado/q.cobrado>0.05?'neg':''}">${pct(q.glosado,q.cobrado)}</td><td>${q.pendGuias?`<span class="badge neg">${q.pendGuias}</span>`:'<span class="badge pos">ok</span>'}</td></tr>`).join('')}
+    ${Q.slice().reverse().map(q=>`<tr><td>${lab(q.label)}</td><td>${brlK(q.cobrado)}</td><td>${brlK(q.glosado)}</td><td class="${q.glosado/q.cobrado>0.05?'neg':''}">${pct(q.glosado,q.cobrado)}</td><td>${pendQ(q).n?`<span class="badge neg">${pendQ(q).n}</span>`:'<span class="badge pos">ok</span>'}</td></tr>`).join('')}
     </tbody><tfoot><tr><td>Total</td><td>${brlK(tot.c)}</td><td>${brlK(tot.g)}</td><td>${pct(tot.g,tot.c)}</td><td>${pG?`<span class="badge neg">${pG}</span>`:''}</td></tr></tfoot></table></div>
   </div>`;
 }
@@ -770,6 +796,7 @@ const estStatus = i => i.atual<=0 ? 'zerado' : i.atual<=i.min ? 'baixo' : 'ok';
 const AMP_UI = 240; // cada ampola de tirzepatida: 60 mg · 2,4 ml · 240 UI (seringa U-100)
 const dBR = s => { const m=/^(\d{2})\/(\d{2})\/(\d{4})/.exec(String(s||'')); return m ? new Date(+m[3],+m[2]-1,+m[1]) : null; };
 const semParceira = s => String(s??'').replace(/(cl[ií]nica\s+)?l[oó]tus(\s+by\s+pantheon)?/gi,'Clínica parceira');
+AFTER.glosas = () => { if (!ENVIO && envioErr) carregarEnvio(); };
 function estHead(){ return `<div><div class="eyebrow">Estoque</div><h1 class="title">Estoque Pantheon<small>AO VIVO DO CONTROLE DE ESTOQUE${estHora?' · '+estHora:''}</small></h1></div>`; }
 function estSeg(){ return `<div class="seg" role="group">${[['tirz','Tirzepatida'],['geral','Todo o estoque']].map(([k,l])=>`<button aria-pressed="${ST.estAba===k}" onclick="ST.estAba='${k}';rerender()">${l}</button>`).join('')}</div>`; }
 
