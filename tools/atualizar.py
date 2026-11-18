@@ -143,7 +143,39 @@ def financeiro_mes(h):
 
 
 # ---------------- KPI (cópia de reserva; o app lê o site ao vivo) ----------------
+def kpi_formato_d(h, anterior):
+    """Formato novo do painel (nov/2026): um único objeto `const D={...}` com listas por mês."""
+    d = obj_js(h, "const D=")
+    meses, serv = d["meses"], d["serv"]
+    n = len(meses)
+    col = lambda linhas, j: [linha[j] for linha in linhas]
+    pac = d["pac"]
+    k = {
+        "MONTHS": meses,
+        "services": serv,
+        "atendimentos": {s: col(d["atend"], j) for j, s in enumerate(serv)},
+        "valores": {s: col(d["val"], j) for j, s in enumerate(serv)} if d.get("val") else None,
+        "faturamento": {c: col(d["fat"], j) for j, c in enumerate(["plano", "reembolso", "particular", "cortesia"])},
+        "amhpdf": d["amh"],
+        "pacientes": {
+            "mensagem": [None if (p[0] is None or isinstance(p[0], str)) else p[0] for p in pac],
+            "novos": [p[1] for p in pac],
+            "noshow": [p[2] for p in pac],
+        },
+    }
+    for lista in [d["atend"], d["fat"], d["amh"], pac] + ([d["val"]] if d.get("val") else []):
+        if len(lista) != n:
+            raise ValueError("KPI: listas com tamanhos diferentes do número de meses")
+    if not k["valores"]:
+        k.pop("valores")
+    cs = re.search(r'CSAT_URL\s*=\s*"([^"]+)"', h)
+    k["csatUrl"] = cs.group(1) if cs else (anterior or {}).get("csatUrl")
+    return k
+
+
 def kpi(h, anterior):
+    if "const MONTHS" not in h and re.search(r"const\s+D\s*=", h):
+        return kpi_formato_d(h, anterior)
     s = h[h.find("const MONTHS"):]
 
     def lit(nome):
