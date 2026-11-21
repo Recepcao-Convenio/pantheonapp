@@ -149,6 +149,7 @@ details[open] .chev{transform:rotate(90deg)}
 .chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
 /* seletor de mês (lista que rola) */
 .mes-sel{display:flex;align-items:center;gap:10px;margin-top:-8px}
+.sel-obs{font-size:.74rem;color:var(--muted);margin-top:-10px}
 .mes-sel label{font-size:.8rem;color:var(--muted);font-weight:500}
 .mes-sel .box{position:relative;flex:1;max-width:260px}
 .mes-sel select{appearance:none;-webkit-appearance:none;width:100%;font:inherit;font-size:16px;font-weight:600;color:#fff;background:var(--brand);border:0;border-radius:999px;padding:9px 40px 9px 18px;cursor:pointer}
@@ -586,17 +587,17 @@ function serieLinha(labels, series, opts={}) {
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${g}</svg>${leg}`;
 }
 
-function mesSel(ops, atual, acao){
-  return `<div class="mes-sel"><label for="mesSel">Mês</label><div class="box"><select id="mesSel" onchange="${acao}">${ops.map(([v,l])=>`<option value="${esc(String(v))}" ${String(v)===String(atual)?'selected':''}>${esc(String(l))}</option>`).join('')}</select></div></div>`;
+function mesSel(ops, atual, acao, rot='Mês', id='mesSel', estilo=''){
+  return `<div class="mes-sel" style="${estilo}"><label for="${id}" style="min-width:42px">${rot}</label><div class="box"><select id="${id}" onchange="${acao}">${ops.map(([v,l])=>`<option value="${esc(String(v))}" ${String(v)===String(atual)?'selected':''}>${esc(String(l))}</option>`).join('')}</select></div></div>`;
 }
 
 function vKpi(){
   const k=K(), I=kIdx(), ML=k.MONTHS.map(m=>m.slice(0,3)), hl=ST.kMes===-1?null:ST.kMes;
   const secs=[['geral','Visão geral'],['atend','Atendimentos'],['fat','Faturamento'],['pac','Pacientes'],['amh','AMHPDF'],['sat','Satisfação']];
-  const nav=`<div class="chips">${secs.map(([s,l])=>`<button class="chip" aria-pressed="${ST.kSec===s}" onclick="ST.kSec='${s}';rerender()">${l}</button>`).join('')}</div>`;
+  const nav=mesSel(secs, ST.kSec, "ST.kSec=this.value;rerender()", 'Seção', 'secSel', 'margin-top:0');
   const mesChips = ST.kSec==='sat' ? '' : mesSel([[-1,'Janeiro a '+k.MONTHS.at(-1).toLowerCase()],...k.MONTHS.map((l,i)=>[i,l])], ST.kMes, "ST.kMes=+this.value;rerender()");
   const per = ST.kMes===-1 ? `Janeiro a ${k.MONTHS.at(-1).toLowerCase()} de 2026` : `${k.MONTHS[ST.kMes]} de 2026`;
-  const head = `<div><div class="eyebrow">Painel de indicadores</div><h1 class="title">${ST.kSec==='sat'?'Satisfação dos pacientes':per}<small>KPI PANTHEON</small></h1></div>${nav}${mesChips}`;
+  const head = `<div><div class="eyebrow">Painel de indicadores</div><h1 class="title">${ST.kSec==='sat'?'Satisfação dos pacientes':per}<small>KPI PANTHEON</small></h1></div>${nav}${mesChips}<div class="sel-obs">Obs.: toque no botão para selecionar a opção desejada.</div>`;
   const prev = ST.kMes>0 ? ST.kMes-1 : null;
   const cols=['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)','var(--c6)','#8C6790','#D8BE8A'];
 
